@@ -4,7 +4,11 @@ from pydantic import BaseModel
 import json
 import os
 
-app = FastAPI()
+app = FastAPI(
+    title="Minji's Todo List",
+    description="VDI 배포 과제용 업그레이드 버전",
+    version="2.0.0"
+)
 
 # To-Do 항목 모델
 class TodoItem(BaseModel):
@@ -32,6 +36,14 @@ def save_todos(todos):
 @app.get("/todos", response_model=list[TodoItem])
 def get_todos():
     return load_todos()
+
+# 2. [기능 추가] 특정 키워드가 포함된 할 일 검색 기능
+@app.get("/todos/search")
+def search_todos(keyword: str):
+    todos = load_todos()
+    # 제목에 키워드가 포함된 항목만 필터링
+    results = [todo for todo in todos if keyword.lower() in todo['title'].lower()]
+    return results
 
 # 신규 To-Do 항목 추가
 @app.post("/todos", response_model=TodoItem)

@@ -1,0 +1,11 @@
+INFO:     Started server process [710087]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+INFO:     163.239.77.14:57484 - "GET / HTTP/1.1" 200 OK
+INFO:     163.239.77.14:57484 - "GET /todos HTTP/1.1" 200 OK
+INFO:     163.239.77.14:57484 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+INFO:     163.239.77.14:62942 - "DELETE /todos/1773292768396 HTTP/1.1" 200 OK
+INFO:     163.239.77.14:62942 - "GET /todos HTTP/1.1" 200 OK
+INFO:     163.239.77.14:54002 - "GET / HTTP/1.1" 200 OK
+INFO:     163.239.77.14:54002 - "GET /todos HTTP/1.1" 200 OK
