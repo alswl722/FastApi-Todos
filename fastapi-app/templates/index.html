@@ -1,81 +1,492 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ko">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>To-Do List</title>
+    <title>Minji's To-Do List</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: #f0f2f5;
+            min-height: 100vh;
+            padding: 40px 16px;
+            color: #222;
+        }
+
+        .container {
+            max-width: 700px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 2rem;
+            margin-bottom: 28px;
+            color: #1a1a2e;
+        }
+
+        /* 입력 폼 */
+        .form-card {
+            background: #fff;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+            margin-bottom: 20px;
+        }
+
+        .form-card h2 {
+            font-size: 1rem;
+            margin-bottom: 16px;
+            color: #555;
+            font-weight: 600;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+        }
+
+        input[type="text"], input[type="date"], select, textarea {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 10px 14px;
+            font-size: 0.95rem;
+            outline: none;
+            transition: border 0.2s;
+            background: #fafafa;
+        }
+
+        input[type="text"]:focus, input[type="date"]:focus,
+        select:focus, textarea:focus {
+            border-color: #6c63ff;
+            background: #fff;
+        }
+
+        .input-title { flex: 2; min-width: 160px; }
+        .input-desc  { flex: 3; min-width: 160px; }
+        .input-priority { flex: 1; min-width: 110px; }
+        .input-date { flex: 1.5; min-width: 140px; }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 600;
+            transition: opacity 0.15s, transform 0.1s;
+        }
+        .btn:hover { opacity: 0.88; }
+        .btn:active { transform: scale(0.97); }
+
+        .btn-primary  { background: #6c63ff; color: #fff; width: 100%; margin-top: 4px; }
+        .btn-success  { background: #2ecc71; color: #fff; }
+        .btn-danger   { background: #e74c3c; color: #fff; }
+        .btn-warning  { background: #f39c12; color: #fff; }
+        .btn-sm       { padding: 5px 12px; font-size: 0.82rem; }
+
+        /* 검색 + 필터 */
+        .toolbar {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .search-wrap {
+            display: flex;
+            flex: 1;
+            min-width: 200px;
+            gap: 8px;
+        }
+
+        .search-wrap input { flex: 1; }
+
+        .filter-wrap {
+            display: flex;
+            gap: 6px;
+        }
+
+        .filter-btn {
+            padding: 8px 16px;
+            border: 2px solid #ddd;
+            border-radius: 20px;
+            background: #fff;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #777;
+            transition: all 0.2s;
+        }
+
+        .filter-btn.active {
+            border-color: #6c63ff;
+            color: #6c63ff;
+            background: #f0eeff;
+        }
+
+        /* 통계 바 */
+        .stats {
+            text-align: center;
+            font-size: 0.85rem;
+            color: #888;
+            margin-bottom: 16px;
+        }
+
+        .stats span { font-weight: 700; color: #444; }
+
+        /* Todo 카드 */
+        .todo-list { display: flex; flex-direction: column; gap: 10px; }
+
+        .todo-card {
+            background: #fff;
+            border-radius: 12px;
+            padding: 16px 18px;
+            box-shadow: 0 1px 6px rgba(0,0,0,0.07);
+            display: flex;
+            align-items: flex-start;
+            gap: 14px;
+            border-left: 5px solid #ccc;
+            transition: box-shadow 0.2s;
+        }
+
+        .todo-card:hover { box-shadow: 0 3px 14px rgba(0,0,0,0.12); }
+
+        .todo-card.completed { opacity: 0.6; background: #f8f8f8; }
+        .todo-card.completed .todo-title { text-decoration: line-through; color: #aaa; }
+
+        .todo-card.priority-high   { border-left-color: #e74c3c; }
+        .todo-card.priority-medium { border-left-color: #f39c12; }
+        .todo-card.priority-low    { border-left-color: #2ecc71; }
+
+        .toggle-check {
+            width: 22px;
+            height: 22px;
+            cursor: pointer;
+            accent-color: #6c63ff;
+            flex-shrink: 0;
+            margin-top: 3px;
+        }
+
+        .todo-body { flex: 1; }
+
+        .todo-title {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .todo-desc {
+            font-size: 0.875rem;
+            color: #666;
+            margin-bottom: 6px;
+        }
+
+        .todo-meta {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .badge {
+            padding: 2px 10px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+        .badge-high   { background: #fde8e8; color: #c0392b; }
+        .badge-medium { background: #fef3d0; color: #d68910; }
+        .badge-low    { background: #d5f5e3; color: #1e8449; }
+
+        .due-date {
+            font-size: 0.78rem;
+            color: #999;
+        }
+
+        .due-date.overdue { color: #e74c3c; font-weight: 700; }
+
+        .todo-actions { display: flex; gap: 6px; flex-shrink: 0; }
+
+        /* 편집 모달 */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.4);
+            z-index: 100;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-overlay.open { display: flex; }
+
+        .modal {
+            background: #fff;
+            border-radius: 14px;
+            padding: 30px;
+            width: 100%;
+            max-width: 460px;
+            box-shadow: 0 8px 40px rgba(0,0,0,0.18);
+        }
+
+        .modal h2 { margin-bottom: 18px; font-size: 1.1rem; color: #333; }
+
+        .modal .form-row { flex-direction: column; }
+        .modal input, .modal select { width: 100%; margin-bottom: 10px; }
+
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 8px;
+        }
+
+        .empty-state {
+            text-align: center;
+            color: #bbb;
+            padding: 40px 0;
+            font-size: 1rem;
+        }
+    </style>
 </head>
 <body>
+<div class="container">
     <h1>Minji's To-Do List</h1>
-    <ul id="todo-list"></ul>
-    <form id="todo-form">
-        <input type="text" id="title" placeholder="Title" required>
-        <input type="text" id="description" placeholder="Description" required>
-        <button type="submit">Add To-Do</button>
-    </form>
-    <script>
-        async function fetchTodos() {
-            const response = await fetch('/todos');
-            const todos = await response.json();
-            const todoList = document.getElementById('todo-list');
-            todoList.innerHTML = '';
-            todos.forEach(todo => {
-                const li = document.createElement('li');
-                li.textContent = `${todo.title}: ${todo.description} (Completed: ${todo.completed})`;
-                const editButton = document.createElement('button');
-                editButton.textContent = 'Edit';
-                editButton.onclick = () => editTodo(todo.id);
-                const deleteButton = document.createElement('button');
-                deleteButton.textContent = 'Delete';
-                deleteButton.onclick = () => deleteTodo(todo.id);
-                li.appendChild(editButton);
-                li.appendChild(deleteButton);
-                todoList.appendChild(li);
-            });
+
+    <!-- 입력 폼 -->
+    <div class="form-card">
+        <h2>새 할 일 추가</h2>
+        <form id="todo-form">
+            <div class="form-row">
+                <input class="input-title" type="text" id="title" placeholder="제목" required>
+                <input class="input-desc"  type="text" id="description" placeholder="설명" required>
+            </div>
+            <div class="form-row">
+                <select class="input-priority" id="priority">
+                    <option value="high">🔴 높음</option>
+                    <option value="medium" selected>🟡 보통</option>
+                    <option value="low">🟢 낮음</option>
+                </select>
+                <input class="input-date" type="date" id="due_date">
+            </div>
+            <button class="btn btn-primary" type="submit">+ 추가하기</button>
+        </form>
+    </div>
+
+    <!-- 검색 + 필터 -->
+    <div class="toolbar">
+        <div class="search-wrap">
+            <input type="text" id="search-input" placeholder="제목으로 검색...">
+            <button class="btn btn-warning btn-sm" onclick="searchTodos()">검색</button>
+            <button class="btn btn-sm" style="background:#eee;color:#555;" onclick="clearSearch()">초기화</button>
+        </div>
+        <div class="filter-wrap">
+            <button class="filter-btn active" onclick="setFilter('all', this)">전체</button>
+            <button class="filter-btn" onclick="setFilter('active', this)">미완료</button>
+            <button class="filter-btn" onclick="setFilter('completed', this)">완료</button>
+        </div>
+    </div>
+
+    <!-- 통계 -->
+    <div class="stats" id="stats"></div>
+
+    <!-- 목록 -->
+    <div class="todo-list" id="todo-list"></div>
+</div>
+
+<!-- 편집 모달 -->
+<div class="modal-overlay" id="edit-modal">
+    <div class="modal">
+        <h2>할 일 수정</h2>
+        <div class="form-row">
+            <input type="text" id="edit-title" placeholder="제목">
+            <input type="text" id="edit-description" placeholder="설명">
+            <select id="edit-priority">
+                <option value="high">🔴 높음</option>
+                <option value="medium">🟡 보통</option>
+                <option value="low">🟢 낮음</option>
+            </select>
+            <input type="date" id="edit-due_date">
+        </div>
+        <div class="modal-actions">
+            <button class="btn" style="background:#eee;color:#555;" onclick="closeModal()">취소</button>
+            <button class="btn btn-primary" style="width:auto;" onclick="saveEdit()">저장</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    let currentFilter = 'all';
+    let allTodos = [];
+    let editingId = null;
+
+    async function fetchTodos() {
+        const res = await fetch('/todos');
+        allTodos = await res.json();
+        renderTodos(allTodos);
+    }
+
+    function renderTodos(todos) {
+        const today = new Date().toISOString().split('T')[0];
+        let filtered = todos;
+        if (currentFilter === 'active')    filtered = todos.filter(t => !t.completed);
+        if (currentFilter === 'completed') filtered = todos.filter(t => t.completed);
+
+        const list = document.getElementById('todo-list');
+        list.innerHTML = '';
+
+        const total = todos.length;
+        const done  = todos.filter(t => t.completed).length;
+        document.getElementById('stats').innerHTML =
+            `전체 <span>${total}</span>개 &nbsp;·&nbsp; 완료 <span>${done}</span>개 &nbsp;·&nbsp; 미완료 <span>${total - done}</span>개`;
+
+        if (filtered.length === 0) {
+            list.innerHTML = '<div class="empty-state">할 일이 없습니다 🎉</div>';
+            return;
         }
 
-        async function editTodo(id) {
-            const title = prompt('Enter new title:');
-            const description = prompt('Enter new description:');
-            const completed = confirm('Is this task completed?');
-            const response = await fetch(`/todos/${id}`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ id, title, description, completed })
-            });
-            if (response.ok) {
-                fetchTodos();
-            }
-        }
+        filtered.forEach(todo => {
+            const card = document.createElement('div');
+            card.className = `todo-card priority-${todo.priority} ${todo.completed ? 'completed' : ''}`;
 
-        async function deleteTodo(id) {
-            const response = await fetch(`/todos/${id}`, {
-                method: 'DELETE'
-            });
-            if (response.ok) {
-                fetchTodos();
-            }
-        }
+            const overdue = todo.due_date && todo.due_date < today && !todo.completed;
+            const dueBadge = todo.due_date
+                ? `<span class="due-date ${overdue ? 'overdue' : ''}">📅 ${todo.due_date}${overdue ? ' ⚠️ 초과' : ''}</span>`
+                : '';
 
-        document.getElementById('todo-form').addEventListener('submit', async (event) => {
-            event.preventDefault();
-            const title = document.getElementById('title').value;
-            const description = document.getElementById('description').value;
-            const response = await fetch('/todos', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ id: Date.now(), title, description, completed: false })
-            });
-            if (response.ok) {
-                fetchTodos();
-            }
+            card.innerHTML = `
+                <input type="checkbox" class="toggle-check" ${todo.completed ? 'checked' : ''}
+                    onchange="toggleTodo(${todo.id})">
+                <div class="todo-body">
+                    <div class="todo-title">${escapeHtml(todo.title)}</div>
+                    <div class="todo-desc">${escapeHtml(todo.description)}</div>
+                    <div class="todo-meta">
+                        <span class="badge badge-${todo.priority}">${labelPriority(todo.priority)}</span>
+                        ${dueBadge}
+                    </div>
+                </div>
+                <div class="todo-actions">
+                    <button class="btn btn-warning btn-sm" onclick="openEdit(${todo.id})">수정</button>
+                    <button class="btn btn-danger btn-sm" onclick="deleteTodo(${todo.id})">삭제</button>
+                </div>
+            `;
+            list.appendChild(card);
         });
+    }
 
+    function labelPriority(p) {
+        return { high: '높음', medium: '보통', low: '낮음' }[p] || p;
+    }
+
+    function escapeHtml(str) {
+        return String(str)
+            .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    function setFilter(f, btn) {
+        currentFilter = f;
+        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        renderTodos(allTodos);
+    }
+
+    async function searchTodos() {
+        const keyword = document.getElementById('search-input').value.trim();
+        if (!keyword) { renderTodos(allTodos); return; }
+        const res = await fetch(`/todos/search?keyword=${encodeURIComponent(keyword)}`);
+        const results = await res.json();
+        renderTodos(results);
+    }
+
+    function clearSearch() {
+        document.getElementById('search-input').value = '';
+        renderTodos(allTodos);
+    }
+
+    document.getElementById('search-input').addEventListener('keydown', e => {
+        if (e.key === 'Enter') searchTodos();
+    });
+
+    async function toggleTodo(id) {
+        await fetch(`/todos/${id}/toggle`, { method: 'PATCH' });
         fetchTodos();
-    </script>
+    }
+
+    async function deleteTodo(id) {
+        if (!confirm('정말 삭제하시겠습니까?')) return;
+        await fetch(`/todos/${id}`, { method: 'DELETE' });
+        fetchTodos();
+    }
+
+    function openEdit(id) {
+        const todo = allTodos.find(t => t.id === id);
+        if (!todo) return;
+        editingId = id;
+        document.getElementById('edit-title').value = todo.title;
+        document.getElementById('edit-description').value = todo.description;
+        document.getElementById('edit-priority').value = todo.priority || 'medium';
+        document.getElementById('edit-due_date').value = todo.due_date || '';
+        document.getElementById('edit-modal').classList.add('open');
+    }
+
+    function closeModal() {
+        document.getElementById('edit-modal').classList.remove('open');
+        editingId = null;
+    }
+
+    async function saveEdit() {
+        const todo = allTodos.find(t => t.id === editingId);
+        const updated = {
+            id: editingId,
+            title: document.getElementById('edit-title').value,
+            description: document.getElementById('edit-description').value,
+            completed: todo.completed,
+            priority: document.getElementById('edit-priority').value,
+            due_date: document.getElementById('edit-due_date').value || null,
+        };
+        const res = await fetch(`/todos/${editingId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(updated),
+        });
+        if (res.ok) { closeModal(); fetchTodos(); }
+    }
+
+    document.getElementById('todo-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const due = document.getElementById('due_date').value;
+        const body = {
+            id: Date.now(),
+            title: document.getElementById('title').value,
+            description: document.getElementById('description').value,
+            completed: false,
+            priority: document.getElementById('priority').value,
+            due_date: due || null,
+        };
+        const res = await fetch('/todos', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+        });
+        if (res.ok) {
+            e.target.reset();
+            fetchTodos();
+        }
+    });
+
+    // 모달 바깥 클릭 시 닫기
+    document.getElementById('edit-modal').addEventListener('click', function(e) {
+        if (e.target === this) closeModal();
+    });
+
+    fetchTodos();
+</script>
 </body>
 </html>
