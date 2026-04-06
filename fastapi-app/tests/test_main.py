@@ -281,6 +281,114 @@ class TestToggleTodo:
         assert response.status_code == 404
 
 
+# ──────────────────────────────────────────────
+# 필터링 테스트 (v4.0.0 신규)
+# ──────────────────────────────────────────────
+class TestFilterTodos:
+    def test_filter_by_priority(self):
+        """priority=high 필터 → high 항목만 반환"""
+        todos = [
+            TodoItem(id=1, title="High Task", description="desc", completed=False, priority="high").dict(),
+            TodoItem(id=2, title="Low Task",  description="desc", completed=False, priority="low").dict(),
+        ]
+        save_todos(todos)
+        response = client.get("/todos?priority=high")
+        assert response.status_code == 200
+        result = response.json()
+        assert len(result) == 1
+        assert result[0]["priority"] == "high"
+
+    def test_filter_by_completed(self):
+        """completed=true 필터 → 완료 항목만 반환"""
+        todos = [
+            TodoItem(id=1, title="Done",    description="desc", completed=True).dict(),
+            TodoItem(id=2, title="Pending", description="desc", completed=False).dict(),
+        ]
+        save_todos(todos)
+        response = client.get("/todos?completed=true")
+        assert response.status_code == 200
+        result = response.json()
+        assert len(result) == 1
+        assert result[0]["completed"] is True
+
+    def test_filter_combined(self):
+        """priority=high & completed=false 복합 필터"""
+        todos = [
+            TodoItem(id=1, title="High Pending", description="desc", completed=False, priority="high").dict(),
+            TodoItem(id=2, title="High Done",    description="desc", completed=True,  priority="high").dict(),
+            TodoItem(id=3, title="Low Pending",  description="desc", completed=False, priority="low").dict(),
+        ]
+        save_todos(todos)
+        response = client.get("/todos?priority=high&completed=false")
+        assert response.status_code == 200
+        result = response.json()
+        assert len(result) == 1
+        assert result[0]["title"] == "High Pending"
+
+    def test_filter_no_match(self):
+        """필터 조건에 맞는 항목 없을 시 빈 리스트 반환"""
+        todo = TodoItem(id=1, title="Low Task", description="desc", completed=False, priority="low")
+        save_todos([todo.dict()])
+        response = client.get("/todos?priority=high")
+        assert response.status_code == 200
+        assert response.json() == []
+
+
+# ──────────────────────────────────────────────
+# 통계 테스트 (v4.0.0 신규)
+# ──────────────────────────────────────────────
+class TestStatsTodo:
+    def test_stats_empty(self):
+        """빈 상태 통계 → 모두 0, completion_rate 0.0"""
+        response = client.get("/todos/stats")
+        assert response.status_code == 200
+        data = response.json()
+        assert data["total"] == 0
+        assert data["completed"] == 0
+        assert data["pending"] == 0
+        assert data["completion_rate"] == 0.0
+
+    def test_stats_with_todos(self):
+        """항목 추가 후 통계 수치 정확성 검증"""
+        todos = [
+            TodoItem(id=1, title="A", description="desc", completed=True,  priority="high").dict(),
+            TodoItem(id=2, title="B", description="desc", completed=False, priority="high").dict(),
+            TodoItem(id=3, title="C", description="desc", completed=False, priority="low").dict(),
+        ]
+        save_todos(todos)
+        response = client.get("/todos/stats")
+        data = response.json()
+        assert data["total"] == 3
+        assert data["completed"] == 1
+        assert data["pending"] == 2
+        assert data["completion_rate"] == 33.3
+
+    def test_stats_by_priority(self):
+        """priority별 카운트 정확성 검증"""
+        todos = [
+            TodoItem(id=1, title="A", description="desc", completed=False, priority="high").dict(),
+            TodoItem(id=2, title="B", description="desc", completed=False, priority="high").dict(),
+            TodoItem(id=3, title="C", description="desc", completed=False, priority="medium").dict(),
+            TodoItem(id=4, title="D", description="desc", completed=False, priority="low").dict(),
+        ]
+        save_todos(todos)
+        response = client.get("/todos/stats")
+        data = response.json()
+        assert data["by_priority"]["high"] == 2
+        assert data["by_priority"]["medium"] == 1
+        assert data["by_priority"]["low"] == 1
+
+    def test_stats_completion_rate_100(self):
+        """모두 완료 시 completion_rate 100.0"""
+        todos = [
+            TodoItem(id=1, title="A", description="desc", completed=True).dict(),
+            TodoItem(id=2, title="B", description="desc", completed=True).dict(),
+        ]
+        save_todos(todos)
+        response = client.get("/todos/stats")
+        assert response.json()["completion_rate"] == 100.0
+
+
 class TestHealthCheck:
     def test_health_check_empty(self):
         """빈 상태에서 /health → 정상 상태 및 카운트 검증"""
@@ -288,7 +396,7 @@ class TestHealthCheck:
         assert response.status_code == 200
         data = response.json()
         assert data["status"] == "ok"
-        assert data["version"] == "3.0.0"
+        assert data["version"] == "4.0.0"
         assert data["total_todos"] == 0
         assert data["completed"] == 0
         assert data["pending"] == 0

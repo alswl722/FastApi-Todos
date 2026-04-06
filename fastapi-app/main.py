@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Query
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 from typing import Optional
@@ -8,7 +8,7 @@ import os
 app = FastAPI(
     title="Minji's Todo List",
     description="VDI 배포 과제용 업그레이드 버전",
-    version="3.0.0"
+    version="4.0.0"
 )
 
 # To-Do 항목 모델
@@ -35,10 +35,18 @@ def save_todos(todos):
     with open(TODO_FILE, "w") as file:
         json.dump(todos, file, indent=4, ensure_ascii=False)
 
-# To-Do 목록 조회
+# To-Do 목록 조회 (priority / completed 필터 지원)
 @app.get("/todos", response_model=list[TodoItem])
-def get_todos():
-    return load_todos()
+def get_todos(
+    priority: Optional[str] = Query(None, description="low / medium / high"),
+    completed: Optional[bool] = Query(None, description="true / false"),
+):
+    todos = load_todos()
+    if priority is not None:
+        todos = [t for t in todos if t["priority"] == priority]
+    if completed is not None:
+        todos = [t for t in todos if t["completed"] == completed]
+    return todos
 
 # 특정 키워드가 포함된 할 일 검색
 @app.get("/todos/search")
@@ -46,6 +54,24 @@ def search_todos(keyword: str):
     todos = load_todos()
     results = [todo for todo in todos if keyword.lower() in todo["title"].lower()]
     return results
+
+# To-Do 통계 조회
+@app.get("/todos/stats")
+def get_stats():
+    todos = load_todos()
+    total = len(todos)
+    completed = sum(1 for t in todos if t["completed"])
+    return {
+        "total": total,
+        "completed": completed,
+        "pending": total - completed,
+        "completion_rate": round(completed / total * 100, 1) if total > 0 else 0.0,
+        "by_priority": {
+            "high":   sum(1 for t in todos if t["priority"] == "high"),
+            "medium": sum(1 for t in todos if t["priority"] == "medium"),
+            "low":    sum(1 for t in todos if t["priority"] == "low"),
+        },
+    }
 
 # 신규 To-Do 항목 추가
 @app.post("/todos", response_model=TodoItem)
@@ -93,7 +119,7 @@ def health_check():
     todos = load_todos()
     return {
         "status": "ok",
-        "version": "3.0.0",
+        "version": "4.0.0",
         "total_todos": len(todos),
         "completed": sum(1 for t in todos if t["completed"]),
         "pending": sum(1 for t in todos if not t["completed"]),
