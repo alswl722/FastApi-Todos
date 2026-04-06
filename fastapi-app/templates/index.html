@@ -253,11 +253,155 @@
             padding: 40px 0;
             font-size: 1rem;
         }
+
+        /* v4.0.0 통계 대시보드 */
+        .stats-dashboard {
+            background: #fff;
+            border-radius: 12px;
+            padding: 20px 24px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+            margin-bottom: 20px;
+        }
+
+        .stats-dashboard-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 14px;
+        }
+
+        .stats-dashboard-header h2 {
+            font-size: 0.95rem;
+            color: #555;
+            font-weight: 600;
+        }
+
+        .stats-version-badge {
+            font-size: 0.72rem;
+            background: #6c63ff;
+            color: #fff;
+            padding: 2px 10px;
+            border-radius: 20px;
+            font-weight: 700;
+        }
+
+        .stats-numbers {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 14px;
+        }
+
+        .stat-box {
+            flex: 1;
+            background: #f7f7ff;
+            border-radius: 10px;
+            padding: 12px 10px;
+            text-align: center;
+        }
+
+        .stat-box .stat-value {
+            font-size: 1.6rem;
+            font-weight: 800;
+            color: #1a1a2e;
+            line-height: 1;
+        }
+
+        .stat-box .stat-label {
+            font-size: 0.72rem;
+            color: #999;
+            margin-top: 4px;
+        }
+
+        .stat-box.completed-box .stat-value { color: #2ecc71; }
+        .stat-box.pending-box   .stat-value { color: #e74c3c; }
+
+        .progress-wrap { margin-bottom: 14px; }
+
+        .progress-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.78rem;
+            color: #888;
+            margin-bottom: 5px;
+        }
+
+        .progress-bar-bg {
+            background: #eee;
+            border-radius: 20px;
+            height: 10px;
+            overflow: hidden;
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            border-radius: 20px;
+            background: linear-gradient(90deg, #6c63ff, #2ecc71);
+            transition: width 0.5s ease;
+        }
+
+        .priority-bars { display: flex; flex-direction: column; gap: 6px; }
+
+        .priority-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.8rem;
+        }
+
+        .priority-row .p-label { width: 38px; font-weight: 600; }
+        .priority-row .p-label.high   { color: #c0392b; }
+        .priority-row .p-label.medium { color: #d68910; }
+        .priority-row .p-label.low    { color: #1e8449; }
+
+        .priority-row .p-bar-bg {
+            flex: 1;
+            background: #eee;
+            border-radius: 20px;
+            height: 7px;
+            overflow: hidden;
+        }
+
+        .priority-row .p-bar-fill {
+            height: 100%;
+            border-radius: 20px;
+            transition: width 0.5s ease;
+        }
+
+        .p-bar-fill.high   { background: #e74c3c; }
+        .p-bar-fill.medium { background: #f39c12; }
+        .p-bar-fill.low    { background: #2ecc71; }
+
+        .priority-row .p-count { width: 24px; text-align: right; color: #777; font-weight: 700; }
+
+        /* v4.0.0 Priority 필터 */
+        .priority-filter-wrap {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+        }
+
+        .pf-btn {
+            padding: 6px 14px;
+            border: 2px solid #ddd;
+            border-radius: 20px;
+            background: #fff;
+            cursor: pointer;
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: #777;
+            transition: all 0.2s;
+        }
+
+        .pf-btn.active-all    { border-color: #6c63ff; color: #6c63ff; background: #f0eeff; }
+        .pf-btn.active-high   { border-color: #e74c3c; color: #e74c3c; background: #fde8e8; }
+        .pf-btn.active-medium { border-color: #f39c12; color: #d68910; background: #fef3d0; }
+        .pf-btn.active-low    { border-color: #2ecc71; color: #1e8449; background: #d5f5e3; }
     </style>
 </head>
 <body>
 <div class="container">
-    <h1>Minji's To-Do List</h1>
+    <h1>Minji's To-Do List <span style="font-size:0.55em;color:#6c63ff;vertical-align:middle;">v4.0.0</span></h1>
 
     <!-- 입력 폼 -->
     <div class="form-card">
@@ -279,6 +423,54 @@
         </form>
     </div>
 
+    <!-- v4.0.0 통계 대시보드 -->
+    <div class="stats-dashboard">
+        <div class="stats-dashboard-header">
+            <h2>통계 대시보드</h2>
+            <span class="stats-version-badge">NEW v4.0.0</span>
+        </div>
+        <div class="stats-numbers">
+            <div class="stat-box">
+                <div class="stat-value" id="stat-total">0</div>
+                <div class="stat-label">전체</div>
+            </div>
+            <div class="stat-box completed-box">
+                <div class="stat-value" id="stat-completed">0</div>
+                <div class="stat-label">완료</div>
+            </div>
+            <div class="stat-box pending-box">
+                <div class="stat-value" id="stat-pending">0</div>
+                <div class="stat-label">미완료</div>
+            </div>
+        </div>
+        <div class="progress-wrap">
+            <div class="progress-label">
+                <span>완료율</span>
+                <span id="stat-rate">0%</span>
+            </div>
+            <div class="progress-bar-bg">
+                <div class="progress-bar-fill" id="stat-bar" style="width:0%"></div>
+            </div>
+        </div>
+        <div class="priority-bars">
+            <div class="priority-row">
+                <span class="p-label high">높음</span>
+                <div class="p-bar-bg"><div class="p-bar-fill high" id="bar-high" style="width:0%"></div></div>
+                <span class="p-count" id="cnt-high">0</span>
+            </div>
+            <div class="priority-row">
+                <span class="p-label medium">보통</span>
+                <div class="p-bar-bg"><div class="p-bar-fill medium" id="bar-medium" style="width:0%"></div></div>
+                <span class="p-count" id="cnt-medium">0</span>
+            </div>
+            <div class="priority-row">
+                <span class="p-label low">낮음</span>
+                <div class="p-bar-bg"><div class="p-bar-fill low" id="bar-low" style="width:0%"></div></div>
+                <span class="p-count" id="cnt-low">0</span>
+            </div>
+        </div>
+    </div>
+
     <!-- 검색 + 필터 -->
     <div class="toolbar">
         <div class="search-wrap">
@@ -293,8 +485,13 @@
         </div>
     </div>
 
-    <!-- 통계 -->
-    <div class="stats" id="stats"></div>
+    <!-- v4.0.0 Priority 필터 -->
+    <div class="priority-filter-wrap">
+        <button class="pf-btn active-all" onclick="setPriorityFilter('all', this)">전체</button>
+        <button class="pf-btn" onclick="setPriorityFilter('high', this)">🔴 높음</button>
+        <button class="pf-btn" onclick="setPriorityFilter('medium', this)">🟡 보통</button>
+        <button class="pf-btn" onclick="setPriorityFilter('low', this)">🟢 낮음</button>
+    </div>
 
     <!-- 목록 -->
     <div class="todo-list" id="todo-list"></div>
@@ -323,13 +520,41 @@
 
 <script>
     let currentFilter = 'all';
+    let currentPriority = 'all';
     let allTodos = [];
     let editingId = null;
 
+    async function fetchStats() {
+        const res = await fetch('/todos/stats');
+        const data = await res.json();
+        document.getElementById('stat-total').textContent     = data.total;
+        document.getElementById('stat-completed').textContent = data.completed;
+        document.getElementById('stat-pending').textContent   = data.pending;
+        document.getElementById('stat-rate').textContent      = data.completion_rate + '%';
+        document.getElementById('stat-bar').style.width       = data.completion_rate + '%';
+
+        const max = Math.max(data.by_priority.high, data.by_priority.medium, data.by_priority.low, 1);
+        ['high','medium','low'].forEach(p => {
+            const cnt = data.by_priority[p];
+            document.getElementById('cnt-' + p).textContent    = cnt;
+            document.getElementById('bar-' + p).style.width    = (cnt / max * 100) + '%';
+        });
+    }
+
     async function fetchTodos() {
-        const res = await fetch('/todos');
+        let url = '/todos';
+        if (currentPriority !== 'all') url += `?priority=${currentPriority}`;
+        const res = await fetch(url);
         allTodos = await res.json();
         renderTodos(allTodos);
+        fetchStats();
+    }
+
+    function setPriorityFilter(p, btn) {
+        currentPriority = p;
+        document.querySelectorAll('.pf-btn').forEach(b => b.className = 'pf-btn');
+        btn.classList.add('active-' + p);
+        fetchTodos();
     }
 
     function renderTodos(todos) {
@@ -340,11 +565,6 @@
 
         const list = document.getElementById('todo-list');
         list.innerHTML = '';
-
-        const total = todos.length;
-        const done  = todos.filter(t => t.completed).length;
-        document.getElementById('stats').innerHTML =
-            `전체 <span>${total}</span>개 &nbsp;·&nbsp; 완료 <span>${done}</span>개 &nbsp;·&nbsp; 미완료 <span>${total - done}</span>개`;
 
         if (filtered.length === 0) {
             list.innerHTML = '<div class="empty-state">할 일이 없습니다 🎉</div>';
