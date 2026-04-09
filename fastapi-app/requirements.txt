@@ -4,3 +4,7 @@ pytest
 pytest-html
 httpx
 pytest-cov
+
+# E2E testing
+playwright
+pytest-playwright
