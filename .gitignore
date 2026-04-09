@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# pytest
+.pytest_cache/
+reports/e2e-report.html
+reports/e2e-report.md
+reports/screenshots/*.png
+
+# 로그
+*.log
+
+# Claude Code
+.claude/settings.local.json
+
+# 환경
+.env
+.venv/
+venv/
