@@ -89,7 +89,7 @@ class TestGetTodos:
     def test_get_todos_with_items(self):
         """항목 저장 후 GET /todos → 항목 포함 리스트 반환"""
         todo = TodoItem(id=1, title="Test", description="Test description", completed=False)
-        save_todos([todo.dict()])
+        save_todos([todo.model_dump()])
         response = client.get("/todos")
         assert response.status_code == 200
         assert len(response.json()) == 1
@@ -98,7 +98,7 @@ class TestGetTodos:
     def test_get_todos_multiple_items(self):
         """여러 항목 저장 후 전체 개수 검증"""
         todos = [
-            TodoItem(id=i, title=f"Todo {i}", description="desc", completed=False).dict()
+            TodoItem(id=i, title=f"Todo {i}", description="desc", completed=False).model_dump()
             for i in range(1, 4)
         ]
         save_todos(todos)
@@ -143,7 +143,7 @@ class TestUpdateTodo:
     def test_update_todo(self):
         """PUT /todos/{id} → 항목 수정 및 title 검증"""
         todo = TodoItem(id=1, title="Test", description="Test description", completed=False)
-        save_todos([todo.dict()])
+        save_todos([todo.model_dump()])
         updated_todo = {"id": 1, "title": "Updated", "description": "Updated description", "completed": True}
         response = client.put("/todos/1", json=updated_todo)
         assert response.status_code == 200
@@ -159,7 +159,7 @@ class TestUpdateTodo:
     def test_update_todo_priority(self):
         """PUT /todos/{id} → priority 필드 수정 검증"""
         todo = TodoItem(id=1, title="Test", description="desc", completed=False, priority="low")
-        save_todos([todo.dict()])
+        save_todos([todo.model_dump()])
         updated = {"id": 1, "title": "Test", "description": "desc", "completed": False, "priority": "high"}
         response = client.put("/todos/1", json=updated)
         assert response.status_code == 200
@@ -170,7 +170,7 @@ class TestDeleteTodo:
     def test_delete_todo(self):
         """DELETE /todos/{id} → 항목 삭제 후 메시지 검증"""
         todo = TodoItem(id=1, title="Test", description="Test description", completed=False)
-        save_todos([todo.dict()])
+        save_todos([todo.model_dump()])
         response = client.delete("/todos/1")
         assert response.status_code == 200
         assert response.json()["message"] == "To-Do item deleted"
@@ -178,7 +178,7 @@ class TestDeleteTodo:
     def test_delete_todo_removes_from_list(self):
         """삭제 후 GET /todos에서 해당 항목이 없어지는지 검증"""
         todo = TodoItem(id=1, title="Test", description="desc", completed=False)
-        save_todos([todo.dict()])
+        save_todos([todo.model_dump()])
         client.delete("/todos/1")
         response = client.get("/todos")
         assert response.json() == []
@@ -220,7 +220,7 @@ class TestValidation:
     def test_update_todo_missing_fields(self):
         """PUT 요청 시 필수 필드 누락 → 422 반환"""
         todo = TodoItem(id=1, title="Test", description="desc", completed=False)
-        save_todos([todo.dict()])
+        save_todos([todo.model_dump()])
         response = client.put("/todos/1", json={"title": "Only Title"})
         assert response.status_code == 422
 
@@ -232,8 +232,8 @@ class TestSearchTodo:
     def test_search_todos_found(self):
         """키워드 포함 항목 검색 시 결과 반환"""
         todos = [
-            TodoItem(id=1, title="FastAPI 공부", description="desc", completed=False).dict(),
-            TodoItem(id=2, title="운동하기", description="desc", completed=False).dict(),
+            TodoItem(id=1, title="FastAPI 공부", description="desc", completed=False).model_dump(),
+            TodoItem(id=2, title="운동하기", description="desc", completed=False).model_dump(),
         ]
         save_todos(todos)
         response = client.get("/todos/search?keyword=FastAPI")
@@ -244,7 +244,7 @@ class TestSearchTodo:
     def test_search_todos_not_found(self):
         """키워드 미포함 시 빈 리스트 반환"""
         todo = TodoItem(id=1, title="운동하기", description="desc", completed=False)
-        save_todos([todo.dict()])
+        save_todos([todo.model_dump()])
         response = client.get("/todos/search?keyword=FastAPI")
         assert response.status_code == 200
         assert response.json() == []
@@ -252,7 +252,7 @@ class TestSearchTodo:
     def test_search_todos_case_insensitive(self):
         """검색은 대소문자 구분 없이 동작"""
         todo = TodoItem(id=1, title="fastapi study", description="desc", completed=False)
-        save_todos([todo.dict()])
+        save_todos([todo.model_dump()])
         response = client.get("/todos/search?keyword=FASTAPI")
         assert response.status_code == 200
         assert len(response.json()) == 1
@@ -262,7 +262,7 @@ class TestToggleTodo:
     def test_toggle_todo_completed(self):
         """PATCH /todos/{id}/toggle → completed 상태 반전 검증"""
         todo = TodoItem(id=1, title="Test", description="desc", completed=False)
-        save_todos([todo.dict()])
+        save_todos([todo.model_dump()])
         response = client.patch("/todos/1/toggle")
         assert response.status_code == 200
         assert response.json()["completed"] is True
@@ -270,7 +270,7 @@ class TestToggleTodo:
     def test_toggle_todo_twice(self):
         """두 번 토글 시 원래 상태로 돌아오는지 검증"""
         todo = TodoItem(id=1, title="Test", description="desc", completed=False)
-        save_todos([todo.dict()])
+        save_todos([todo.model_dump()])
         client.patch("/todos/1/toggle")
         response = client.patch("/todos/1/toggle")
         assert response.json()["completed"] is False
@@ -288,8 +288,8 @@ class TestFilterTodos:
     def test_filter_by_priority(self):
         """priority=high 필터 → high 항목만 반환"""
         todos = [
-            TodoItem(id=1, title="High Task", description="desc", completed=False, priority="high").dict(),
-            TodoItem(id=2, title="Low Task",  description="desc", completed=False, priority="low").dict(),
+            TodoItem(id=1, title="High Task", description="desc", completed=False, priority="high").model_dump(),
+            TodoItem(id=2, title="Low Task",  description="desc", completed=False, priority="low").model_dump(),
         ]
         save_todos(todos)
         response = client.get("/todos?priority=high")
@@ -301,8 +301,8 @@ class TestFilterTodos:
     def test_filter_by_completed(self):
         """completed=true 필터 → 완료 항목만 반환"""
         todos = [
-            TodoItem(id=1, title="Done",    description="desc", completed=True).dict(),
-            TodoItem(id=2, title="Pending", description="desc", completed=False).dict(),
+            TodoItem(id=1, title="Done",    description="desc", completed=True).model_dump(),
+            TodoItem(id=2, title="Pending", description="desc", completed=False).model_dump(),
         ]
         save_todos(todos)
         response = client.get("/todos?completed=true")
@@ -314,9 +314,9 @@ class TestFilterTodos:
     def test_filter_combined(self):
         """priority=high & completed=false 복합 필터"""
         todos = [
-            TodoItem(id=1, title="High Pending", description="desc", completed=False, priority="high").dict(),
-            TodoItem(id=2, title="High Done",    description="desc", completed=True,  priority="high").dict(),
-            TodoItem(id=3, title="Low Pending",  description="desc", completed=False, priority="low").dict(),
+            TodoItem(id=1, title="High Pending", description="desc", completed=False, priority="high").model_dump(),
+            TodoItem(id=2, title="High Done",    description="desc", completed=True,  priority="high").model_dump(),
+            TodoItem(id=3, title="Low Pending",  description="desc", completed=False, priority="low").model_dump(),
         ]
         save_todos(todos)
         response = client.get("/todos?priority=high&completed=false")
@@ -328,7 +328,7 @@ class TestFilterTodos:
     def test_filter_no_match(self):
         """필터 조건에 맞는 항목 없을 시 빈 리스트 반환"""
         todo = TodoItem(id=1, title="Low Task", description="desc", completed=False, priority="low")
-        save_todos([todo.dict()])
+        save_todos([todo.model_dump()])
         response = client.get("/todos?priority=high")
         assert response.status_code == 200
         assert response.json() == []
@@ -351,9 +351,9 @@ class TestStatsTodo:
     def test_stats_with_todos(self):
         """항목 추가 후 통계 수치 정확성 검증"""
         todos = [
-            TodoItem(id=1, title="A", description="desc", completed=True,  priority="high").dict(),
-            TodoItem(id=2, title="B", description="desc", completed=False, priority="high").dict(),
-            TodoItem(id=3, title="C", description="desc", completed=False, priority="low").dict(),
+            TodoItem(id=1, title="A", description="desc", completed=True,  priority="high").model_dump(),
+            TodoItem(id=2, title="B", description="desc", completed=False, priority="high").model_dump(),
+            TodoItem(id=3, title="C", description="desc", completed=False, priority="low").model_dump(),
         ]
         save_todos(todos)
         response = client.get("/todos/stats")
@@ -366,10 +366,10 @@ class TestStatsTodo:
     def test_stats_by_priority(self):
         """priority별 카운트 정확성 검증"""
         todos = [
-            TodoItem(id=1, title="A", description="desc", completed=False, priority="high").dict(),
-            TodoItem(id=2, title="B", description="desc", completed=False, priority="high").dict(),
-            TodoItem(id=3, title="C", description="desc", completed=False, priority="medium").dict(),
-            TodoItem(id=4, title="D", description="desc", completed=False, priority="low").dict(),
+            TodoItem(id=1, title="A", description="desc", completed=False, priority="high").model_dump(),
+            TodoItem(id=2, title="B", description="desc", completed=False, priority="high").model_dump(),
+            TodoItem(id=3, title="C", description="desc", completed=False, priority="medium").model_dump(),
+            TodoItem(id=4, title="D", description="desc", completed=False, priority="low").model_dump(),
         ]
         save_todos(todos)
         response = client.get("/todos/stats")
@@ -381,8 +381,8 @@ class TestStatsTodo:
     def test_stats_completion_rate_100(self):
         """모두 완료 시 completion_rate 100.0"""
         todos = [
-            TodoItem(id=1, title="A", description="desc", completed=True).dict(),
-            TodoItem(id=2, title="B", description="desc", completed=True).dict(),
+            TodoItem(id=1, title="A", description="desc", completed=True).model_dump(),
+            TodoItem(id=2, title="B", description="desc", completed=True).model_dump(),
         ]
         save_todos(todos)
         response = client.get("/todos/stats")
@@ -396,7 +396,7 @@ class TestHealthCheck:
         assert response.status_code == 200
         data = response.json()
         assert data["status"] == "ok"
-        assert data["version"] == "4.0.0"
+        assert data["version"] == "5.0.0"
         assert data["total_todos"] == 0
         assert data["completed"] == 0
         assert data["pending"] == 0
@@ -404,8 +404,8 @@ class TestHealthCheck:
     def test_health_check_with_todos(self):
         """항목 추가 후 /health → 카운트 정확성 검증"""
         todos = [
-            TodoItem(id=1, title="Done", description="desc", completed=True).dict(),
-            TodoItem(id=2, title="Pending", description="desc", completed=False).dict(),
+            TodoItem(id=1, title="Done", description="desc", completed=True).model_dump(),
+            TodoItem(id=2, title="Pending", description="desc", completed=False).model_dump(),
         ]
         save_todos(todos)
         response = client.get("/health")

@@ -8,7 +8,7 @@ import os
 app = FastAPI(
     title="Minji's Todo List",
     description="VDI 배포 과제용 업그레이드 버전",
-    version="4.0.0"
+    version="5.0.0"
 )
 
 # To-Do 항목 모델
@@ -77,7 +77,7 @@ def get_stats():
 @app.post("/todos", response_model=TodoItem)
 def create_todo(todo: TodoItem):
     todos = load_todos()
-    todos.append(todo.dict())
+    todos.append(todo.model_dump())
     save_todos(todos)
     return todo
 
@@ -87,7 +87,7 @@ def update_todo(todo_id: int, updated_todo: TodoItem):
     todos = load_todos()
     for todo in todos:
         if todo["id"] == todo_id:
-            todo.update(updated_todo.dict())
+            todo.update(updated_todo.model_dump())
             save_todos(todos)
             return updated_todo
     raise HTTPException(status_code=404, detail="To-Do item not found")
@@ -119,7 +119,7 @@ def health_check():
     todos = load_todos()
     return {
         "status": "ok",
-        "version": "4.0.0",
+        "version": "5.0.0",
         "total_todos": len(todos),
         "completed": sum(1 for t in todos if t["completed"]),
         "pending": sum(1 for t in todos if not t["completed"]),
