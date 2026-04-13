@@ -41,7 +41,7 @@ def test_add_todo_with_due_date(page):
     """마감일을 설정하면 .dday span이 카드에 표시되어야 한다."""
     _add_todo(page, due_date="2099-12-31")
     assert page.locator(".dday").is_visible()
-    assert "2099-12-31" in page.locator(".dday").inner_text()
+    assert "D-" in page.locator(".dday").inner_text()
 
 
 @pytest.mark.e2e
