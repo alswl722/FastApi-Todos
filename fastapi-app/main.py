@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
-from typing import Optional
+from typing import Annotated, Optional
 import json
 import os
 
@@ -23,6 +23,8 @@ class TodoItem(BaseModel):
 # JSON 파일 경로
 TODO_FILE = "todo.json"
 
+TODO_NOT_FOUND = "To-Do item not found"
+
 # JSON 파일에서 To-Do 항목 로드
 def load_todos():
     if os.path.exists(TODO_FILE):
@@ -38,8 +40,8 @@ def save_todos(todos):
 # To-Do 목록 조회 (priority / completed 필터 지원)
 @app.get("/todos", response_model=list[TodoItem])
 def get_todos(
-    priority: Optional[str] = Query(None, description="low / medium / high"),
-    completed: Optional[bool] = Query(None, description="true / false"),
+    priority: Annotated[Optional[str], Query(description="low / medium / high")] = None,
+    completed: Annotated[Optional[bool], Query(description="true / false")] = None,
 ):
     todos = load_todos()
     if priority is not None:
@@ -82,7 +84,7 @@ def create_todo(todo: TodoItem):
     return todo
 
 # To-Do 항목 수정
-@app.put("/todos/{todo_id}", response_model=TodoItem)
+@app.put("/todos/{todo_id}", response_model=TodoItem, responses={404: {"description": TODO_NOT_FOUND}})
 def update_todo(todo_id: int, updated_todo: TodoItem):
     todos = load_todos()
     for todo in todos:
@@ -90,10 +92,10 @@ def update_todo(todo_id: int, updated_todo: TodoItem):
             todo.update(updated_todo.model_dump())
             save_todos(todos)
             return updated_todo
-    raise HTTPException(status_code=404, detail="To-Do item not found")
+    raise HTTPException(status_code=404, detail=TODO_NOT_FOUND)
 
 # 완료 상태만 토글
-@app.patch("/todos/{todo_id}/toggle")
+@app.patch("/todos/{todo_id}/toggle", responses={404: {"description": TODO_NOT_FOUND}})
 def toggle_todo(todo_id: int):
     todos = load_todos()
     for todo in todos:
@@ -101,15 +103,15 @@ def toggle_todo(todo_id: int):
             todo["completed"] = not todo["completed"]
             save_todos(todos)
             return todo
-    raise HTTPException(status_code=404, detail="To-Do item not found")
+    raise HTTPException(status_code=404, detail=TODO_NOT_FOUND)
 
 # To-Do 항목 삭제
-@app.delete("/todos/{todo_id}")
+@app.delete("/todos/{todo_id}", responses={404: {"description": TODO_NOT_FOUND}})
 def delete_todo(todo_id: int):
     todos = load_todos()
     new_todos = [todo for todo in todos if todo["id"] != todo_id]
     if len(new_todos) == len(todos):
-        raise HTTPException(status_code=404, detail="To-Do item not found")
+        raise HTTPException(status_code=404, detail=TODO_NOT_FOUND)
     save_todos(new_todos)
     return {"message": "To-Do item deleted"}
 

@@ -346,7 +346,7 @@ class TestStatsTodo:
         assert data["total"] == 0
         assert data["completed"] == 0
         assert data["pending"] == 0
-        assert data["completion_rate"] == 0.0
+        assert data["completion_rate"] == pytest.approx(0.0)
 
     def test_stats_with_todos(self):
         """항목 추가 후 통계 수치 정확성 검증"""
@@ -361,7 +361,7 @@ class TestStatsTodo:
         assert data["total"] == 3
         assert data["completed"] == 1
         assert data["pending"] == 2
-        assert data["completion_rate"] == 33.3
+        assert data["completion_rate"] == pytest.approx(33.3)
 
     def test_stats_by_priority(self):
         """priority별 카운트 정확성 검증"""
@@ -386,7 +386,7 @@ class TestStatsTodo:
         ]
         save_todos(todos)
         response = client.get("/todos/stats")
-        assert response.json()["completion_rate"] == 100.0
+        assert response.json()["completion_rate"] == pytest.approx(100.0)
 
 
 class TestHealthCheck:
