@@ -413,3 +413,18 @@ class TestHealthCheck:
         assert data["total_todos"] == 2
         assert data["completed"] == 1
         assert data["pending"] == 1
+
+
+class TestRootAndUtils:
+    def test_root_returns_html(self):
+        """GET / → HTML 응답 반환 검증"""
+        response = client.get("/")
+        assert response.status_code == 200
+        assert "text/html" in response.headers["content-type"]
+
+    def test_load_todos_returns_empty_when_no_file(self):
+        """todo.json 파일이 없을 때 load_todos → 빈 리스트 반환"""
+        if os.path.exists("todo.json"):
+            os.remove("todo.json")
+        result = load_todos()
+        assert result == []
