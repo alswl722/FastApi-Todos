@@ -8,3 +8,6 @@ pytest-cov
 # E2E testing
 playwright
 pytest-playwright
+
+prometheus-fastapi-instrumentator
+prometheus-client

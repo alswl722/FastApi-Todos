@@ -4,12 +4,15 @@ from pydantic import BaseModel
 from typing import Annotated, Optional
 import json
 import os
+from prometheus_fastapi_instrumentator import Instrumentator
 
 app = FastAPI(
     title="Minji's Todo List",
     description="VDI 배포 과제용 업그레이드 버전",
     version="5.0.0"
 )
+
+Instrumentator().instrument(app).expose(app, endpoint="/metrics")
 
 # To-Do 항목 모델
 class TodoItem(BaseModel):
