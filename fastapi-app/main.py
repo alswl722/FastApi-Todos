@@ -21,6 +21,7 @@ class TodoItem(BaseModel):
     description: str
     completed: bool
     priority: str = "medium"       # low / medium / high
+    category: str = "other"        # work / study / exercise / hobby / other
     due_date: Optional[str] = None # YYYY-MM-DD
 
 # JSON 파일 경로
@@ -44,11 +45,14 @@ def save_todos(todos):
 @app.get("/todos", response_model=list[TodoItem])
 def get_todos(
     priority: Annotated[Optional[str], Query(description="low / medium / high")] = None,
+    category: Annotated[Optional[str], Query(description="work / study / exercise / hobby / other")] = None,
     completed: Annotated[Optional[bool], Query(description="true / false")] = None,
 ):
     todos = load_todos()
     if priority is not None:
         todos = [t for t in todos if t["priority"] == priority]
+    if category is not None:
+        todos = [t for t in todos if t.get("category", "other") == category]
     if completed is not None:
         todos = [t for t in todos if t["completed"] == completed]
     return todos
@@ -75,6 +79,13 @@ def get_stats():
             "high":   sum(1 for t in todos if t["priority"] == "high"),
             "medium": sum(1 for t in todos if t["priority"] == "medium"),
             "low":    sum(1 for t in todos if t["priority"] == "low"),
+        },
+        "by_category": {
+            "work":     sum(1 for t in todos if t.get("category", "other") == "work"),
+            "study":    sum(1 for t in todos if t.get("category", "other") == "study"),
+            "exercise": sum(1 for t in todos if t.get("category", "other") == "exercise"),
+            "hobby":    sum(1 for t in todos if t.get("category", "other") == "hobby"),
+            "other":    sum(1 for t in todos if t.get("category", "other") == "other"),
         },
     }
 

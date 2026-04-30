@@ -135,6 +135,7 @@
         .input-title    { flex: 2; min-width: 160px; }
         .input-desc     { flex: 3; min-width: 160px; }
         .input-priority { flex: 1; min-width: 110px; }
+        .input-category { flex: 1; min-width: 110px; }
         .input-date     { flex: 1.5; min-width: 140px; }
 
         .btn {
@@ -286,6 +287,28 @@
         .pf-btn.active-medium { border-color: #f39c12; color: #d68910; background: #fef3d0; }
         .pf-btn.active-low    { border-color: #2ecc71; color: #1e8449; background: #d5f5e3; }
 
+        /* 카테고리 필터 버튼 */
+        .category-filter-wrap { display: flex; gap: 6px; flex-wrap: wrap; }
+
+        .cf-btn {
+            padding: 6px 14px;
+            border: 2px solid var(--border);
+            border-radius: 20px;
+            background: var(--card);
+            cursor: pointer;
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            transition: all 0.2s;
+        }
+
+        .cf-btn.active-all      { border-color: var(--accent); color: var(--accent); background: var(--accent-bg); }
+        .cf-btn.active-work     { border-color: #3498db; color: #2874a6; background: #d6e9f7; }
+        .cf-btn.active-study    { border-color: #9b59b6; color: #6c3483; background: #ebd6f5; }
+        .cf-btn.active-exercise { border-color: #e67e22; color: #af601a; background: #fae5d3; }
+        .cf-btn.active-hobby    { border-color: #16a085; color: #117864; background: #d1f2eb; }
+        .cf-btn.active-other    { border-color: #7f8c8d; color: #5d6d7e; background: #d5dbdb; }
+
         .sort-select {
             padding: 6px 12px;
             border: 2px solid var(--border);
@@ -320,6 +343,12 @@
         .todo-card.priority-high   { border-left-color: #e74c3c; }
         .todo-card.priority-medium { border-left-color: #f39c12; }
         .todo-card.priority-low    { border-left-color: #2ecc71; }
+
+        .todo-card.category-work     { box-shadow: 0 1px 6px var(--shadow), inset 4px 0 0 #3498db; }
+        .todo-card.category-study    { box-shadow: 0 1px 6px var(--shadow), inset 4px 0 0 #9b59b6; }
+        .todo-card.category-exercise { box-shadow: 0 1px 6px var(--shadow), inset 4px 0 0 #e67e22; }
+        .todo-card.category-hobby    { box-shadow: 0 1px 6px var(--shadow), inset 4px 0 0 #16a085; }
+        .todo-card.category-other    { box-shadow: 0 1px 6px var(--shadow), inset 4px 0 0 #7f8c8d; }
 
         .toggle-check {
             width: 22px;
@@ -357,6 +386,12 @@
         .badge-high   { background: #fde8e8; color: #c0392b; }
         .badge-medium { background: #fef3d0; color: #d68910; }
         .badge-low    { background: #d5f5e3; color: #1e8449; }
+
+        .badge-cat-work     { background: #d6e9f7; color: #2874a6; }
+        .badge-cat-study    { background: #ebd6f5; color: #6c3483; }
+        .badge-cat-exercise { background: #fae5d3; color: #af601a; }
+        .badge-cat-hobby    { background: #d1f2eb; color: #117864; }
+        .badge-cat-other    { background: #d5dbdb; color: #5d6d7e; }
 
         /* D-day 뱃지 */
         .dday {
@@ -440,6 +475,13 @@
                     <option value="high">🔴 높음</option>
                     <option value="medium" selected>🟡 보통</option>
                     <option value="low">🟢 낮음</option>
+                </select>
+                <select class="input-category" id="category">
+                    <option value="work">💼 일</option>
+                    <option value="study">📚 공부</option>
+                    <option value="exercise">🏃 운동</option>
+                    <option value="hobby">🎨 취미</option>
+                    <option value="other" selected>📌 기타</option>
                 </select>
                 <input class="input-date" type="date" id="due_date">
             </div>
@@ -525,6 +567,18 @@
         </select>
     </div>
 
+    <!-- 카테고리 필터 -->
+    <div class="sub-toolbar">
+        <div class="category-filter-wrap">
+            <button class="cf-btn active-all" onclick="setCategoryFilter('all', this)">전체</button>
+            <button class="cf-btn" onclick="setCategoryFilter('work', this)">💼 일</button>
+            <button class="cf-btn" onclick="setCategoryFilter('study', this)">📚 공부</button>
+            <button class="cf-btn" onclick="setCategoryFilter('exercise', this)">🏃 운동</button>
+            <button class="cf-btn" onclick="setCategoryFilter('hobby', this)">🎨 취미</button>
+            <button class="cf-btn" onclick="setCategoryFilter('other', this)">📌 기타</button>
+        </div>
+    </div>
+
     <!-- 목록 -->
     <div class="todo-list" id="todo-list"></div>
 </div>
@@ -541,6 +595,13 @@
                 <option value="medium">🟡 보통</option>
                 <option value="low">🟢 낮음</option>
             </select>
+            <select id="edit-category">
+                <option value="work">💼 일</option>
+                <option value="study">📚 공부</option>
+                <option value="exercise">🏃 운동</option>
+                <option value="hobby">🎨 취미</option>
+                <option value="other">📌 기타</option>
+            </select>
             <input type="date" id="edit-due_date">
         </div>
         <div class="modal-actions">
@@ -553,6 +614,7 @@
 <script>
     let currentFilter   = 'all';
     let currentPriority = 'all';
+    let currentCategory = 'all';
     let allTodos        = [];
     let editingId       = null;
 
@@ -591,8 +653,11 @@
 
     // ── 데이터 fetch ──────────────────────────
     async function fetchTodos() {
-        let url = '/todos';
-        if (currentPriority !== 'all') url += `?priority=${currentPriority}`;
+        const params = new URLSearchParams();
+        if (currentPriority !== 'all') params.set('priority', currentPriority);
+        if (currentCategory !== 'all') params.set('category', currentCategory);
+        const qs  = params.toString();
+        const url = qs ? `/todos?${qs}` : '/todos';
         const res = await fetch(url);
         allTodos  = await res.json();
         renderTodos(allTodos);
@@ -655,7 +720,8 @@
 
         filtered.forEach(todo => {
             const card = document.createElement('div');
-            card.className = `todo-card priority-${todo.priority} ${todo.completed ? 'completed' : ''}`;
+            const cat  = todo.category || 'other';
+            card.className = `todo-card priority-${todo.priority} category-${cat} ${todo.completed ? 'completed' : ''}`;
 
             card.innerHTML = `
                 <input type="checkbox" class="toggle-check" ${todo.completed ? 'checked' : ''}
@@ -665,6 +731,7 @@
                     <div class="todo-desc">${escapeHtml(todo.description)}</div>
                     <div class="todo-meta">
                         <span class="badge badge-${todo.priority}">${labelPriority(todo.priority)}</span>
+                        <span class="badge badge-cat-${cat}">${labelCategory(cat)}</span>
                         ${ddayBadge(todo.due_date, todo.completed)}
                     </div>
                 </div>
@@ -689,6 +756,13 @@
         currentPriority = p;
         document.querySelectorAll('.pf-btn').forEach(b => b.className = 'pf-btn');
         btn.classList.add('active-' + p);
+        fetchTodos();
+    }
+
+    function setCategoryFilter(c, btn) {
+        currentCategory = c;
+        document.querySelectorAll('.cf-btn').forEach(b => b.className = 'cf-btn');
+        btn.classList.add('active-' + c);
         fetchTodos();
     }
 
@@ -728,6 +802,7 @@
         document.getElementById('edit-title').value       = todo.title;
         document.getElementById('edit-description').value = todo.description;
         document.getElementById('edit-priority').value    = todo.priority || 'medium';
+        document.getElementById('edit-category').value    = todo.category || 'other';
         document.getElementById('edit-due_date').value    = todo.due_date || '';
         document.getElementById('edit-modal').classList.add('open');
     }
@@ -745,6 +820,7 @@
             description: document.getElementById('edit-description').value,
             completed:   todo.completed,
             priority:    document.getElementById('edit-priority').value,
+            category:    document.getElementById('edit-category').value,
             due_date:    document.getElementById('edit-due_date').value || null,
         };
         const res = await fetch(`/todos/${editingId}`, {
@@ -763,6 +839,7 @@
             description: document.getElementById('description').value,
             completed:   false,
             priority:    document.getElementById('priority').value,
+            category:    document.getElementById('category').value,
             due_date:    document.getElementById('due_date').value || null,
         };
         const res = await fetch('/todos', {
@@ -780,6 +857,10 @@
     // ── 유틸 ──────────────────────────────────
     function labelPriority(p) {
         return { high: '높음', medium: '보통', low: '낮음' }[p] || p;
+    }
+
+    function labelCategory(c) {
+        return { work: '일', study: '공부', exercise: '운동', hobby: '취미', other: '기타' }[c] || c;
     }
 
     function escapeHtml(str) {

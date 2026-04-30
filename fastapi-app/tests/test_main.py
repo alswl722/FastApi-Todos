@@ -415,6 +415,87 @@ class TestHealthCheck:
         assert data["pending"] == 1
 
 
+# ──────────────────────────────────────────────
+# 카테고리 테스트 (v6.0.0 신규)
+# ──────────────────────────────────────────────
+class TestCategory:
+    def test_todo_item_default_category(self):
+        """category 기본값은 'other'"""
+        todo = TodoItem(id=1, title="Test", description="desc", completed=False)
+        assert todo.category == "other"
+
+    def test_create_todo_with_category(self):
+        """POST /todos → category 필드가 정상 저장"""
+        todo = {"id": 1, "title": "Work Task", "description": "desc", "completed": False, "category": "work"}
+        response = client.post("/todos", json=todo)
+        assert response.status_code == 200
+        assert response.json()["category"] == "work"
+
+    def test_filter_by_category(self):
+        """category=work 필터 → work 항목만 반환"""
+        todos = [
+            TodoItem(id=1, title="A", description="desc", completed=False, category="work").model_dump(),
+            TodoItem(id=2, title="B", description="desc", completed=False, category="study").model_dump(),
+            TodoItem(id=3, title="C", description="desc", completed=False, category="work").model_dump(),
+        ]
+        save_todos(todos)
+        response = client.get("/todos?category=work")
+        assert response.status_code == 200
+        result = response.json()
+        assert len(result) == 2
+        assert all(t["category"] == "work" for t in result)
+
+    def test_filter_combined_priority_and_category(self):
+        """priority=high & category=study 복합 필터"""
+        todos = [
+            TodoItem(id=1, title="A", description="desc", completed=False, priority="high", category="study").model_dump(),
+            TodoItem(id=2, title="B", description="desc", completed=False, priority="high", category="work").model_dump(),
+            TodoItem(id=3, title="C", description="desc", completed=False, priority="low",  category="study").model_dump(),
+        ]
+        save_todos(todos)
+        response = client.get("/todos?priority=high&category=study")
+        assert response.status_code == 200
+        result = response.json()
+        assert len(result) == 1
+        assert result[0]["title"] == "A"
+
+    def test_update_todo_category(self):
+        """PUT /todos/{id} → category 필드 수정"""
+        todo = TodoItem(id=1, title="Test", description="desc", completed=False, category="other")
+        save_todos([todo.model_dump()])
+        updated = {"id": 1, "title": "Test", "description": "desc", "completed": False, "category": "exercise"}
+        response = client.put("/todos/1", json=updated)
+        assert response.status_code == 200
+        assert response.json()["category"] == "exercise"
+
+    def test_stats_by_category(self):
+        """category별 카운트 정확성 검증"""
+        todos = [
+            TodoItem(id=1, title="A", description="desc", completed=False, category="work").model_dump(),
+            TodoItem(id=2, title="B", description="desc", completed=False, category="work").model_dump(),
+            TodoItem(id=3, title="C", description="desc", completed=False, category="study").model_dump(),
+            TodoItem(id=4, title="D", description="desc", completed=False, category="hobby").model_dump(),
+        ]
+        save_todos(todos)
+        response = client.get("/todos/stats")
+        data = response.json()
+        assert data["by_category"]["work"]     == 2
+        assert data["by_category"]["study"]    == 1
+        assert data["by_category"]["hobby"]    == 1
+        assert data["by_category"]["exercise"] == 0
+        assert data["by_category"]["other"]    == 0
+
+    def test_filter_by_category_other_for_legacy_data(self):
+        """category 필드가 없는 기존 데이터는 'other'로 필터링되어야 함"""
+        legacy_todos = [
+            {"id": 1, "title": "Legacy", "description": "desc", "completed": False, "priority": "medium"},
+        ]
+        save_todos(legacy_todos)
+        response = client.get("/todos?category=other")
+        assert response.status_code == 200
+        assert len(response.json()) == 1
+
+
 class TestRootAndUtils:
     def test_root_returns_html(self):
         """GET / → HTML 응답 반환 검증"""
