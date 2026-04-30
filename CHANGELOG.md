@@ -2,6 +2,51 @@
 
 ---
 
+## [v6.0.0] - 2026-04-30
+
+### 추가
+- **카테고리 필드** — `TodoItem`에 `category` 필드 추가 (`work` / `study` / `exercise` / `hobby` / `other`, 기본값 `other`)
+  - `GET /todos?category=work` 필터 (priority와 AND 결합 가능)
+  - `GET /todos/stats` 응답에 `by_category` 카운트 추가
+  - 입력 폼·편집 모달에 카테고리 select (💼 일 / 📚 공부 / 🏃 운동 / 🎨 취미 / 📌 기타)
+  - 카테고리 필터 버튼 행 + 카드 좌측 inset shadow 색상 + 뱃지 표시
+  - 레거시 데이터(category 필드 없음) 호환: `t.get("category", "other")`
+- **Prometheus + Grafana 모니터링 스택** (`docker-compose.yml`)
+  - `prom/prometheus` (포트 7070), `grafana/grafana` (포트 3000), `prom/node-exporter` (포트 7100)
+  - `prometheus-fastapi-instrumentator` 적용 → `/metrics` 엔드포인트 노출
+  - `prometheus-data` 볼륨 영속화, config 파일 read-only 마운트
+- **테스트** — `TestCategory` 클래스 7개 추가 (모델 기본값, 생성, 필터, 복합 필터, 수정, stats, 레거시 호환)
+
+### 변경
+- `docker-compose.yml`에서 obsolete `version: "3.7"` 제거
+- `requirements.txt`에 `prometheus-fastapi-instrumentator`, `prometheus-client` 추가
+
+### 테스트 결과
+```
+48 passed in 0.50s  (단위 테스트, 컨테이너 내부)
+```
+
+---
+
+## [v5.0.0] - 2026-04-12
+
+### 추가
+- **다크모드 토글** — 로컬스토리지로 사용자 선호 유지 (`localStorage.darkMode`)
+- **D-day 카운트다운 뱃지** — 마감일 기반 시각화
+  - `D-Day!` (오늘) / `D-3` (임박) / `D-7` (예정) / `D+1 초과` (지남)
+  - 상태별 색상·애니메이션(pulse) 차등 적용
+- **정렬 기능** — 기본순 / 우선순위순 / 마감일순 / 제목순 드롭다운
+
+### 변경
+- Pydantic `.dict()` → `.model_dump()` 마이그레이션 (Pydantic v2 호환)
+
+### 품질 개선
+- **SonarQube 통합** (`sonar-project.properties`)
+- SonarQube 발견사항 개선: `Annotated` 타입힌트 도입, 상수 추출(`TODO_NOT_FOUND`), `responses` 문서화, float 비교 정확화
+- **테스트 커버리지 100% 달성** (root 엔드포인트, `load_todos` 빈 파일 경로 추가)
+
+---
+
 ## [v4.1.0] - 2026-04-09
 
 ### 추가
