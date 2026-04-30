@@ -5,6 +5,7 @@ __pycache__/
 
 # pytest
 .pytest_cache/
+.coverage
 reports/e2e-report.html
 reports/e2e-report.md
 reports/screenshots/*.png
