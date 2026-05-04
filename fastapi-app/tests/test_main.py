@@ -496,6 +496,46 @@ class TestCategory:
         assert len(response.json()) == 1
 
 
+# ──────────────────────────────────────────────
+# 메모(notes) 필드 테스트 (v6.2.0 신규)
+# ──────────────────────────────────────────────
+class TestNotes:
+    def test_todo_item_default_notes(self):
+        """notes 기본값은 None"""
+        # TODO: 실제 어설션 채우기
+        pass
+
+    def test_create_todo_with_notes(self):
+        """POST /todos → notes 필드가 정상 저장"""
+        # TODO: 실제 어설션 채우기
+        pass
+
+    def test_create_todo_without_notes(self):
+        """POST /todos → notes 미지정 시 None 으로 저장"""
+        # TODO: 실제 어설션 채우기
+        pass
+
+    def test_update_todo_notes(self):
+        """PUT /todos/{id} → notes 필드 수정"""
+        # TODO: 실제 어설션 채우기
+        pass
+
+    def test_update_todo_clear_notes(self):
+        """PUT /todos/{id} → notes 를 None 으로 비우기"""
+        # TODO: 실제 어설션 채우기
+        pass
+
+    def test_get_todos_returns_notes(self):
+        """GET /todos → 응답에 notes 필드 포함"""
+        # TODO: 실제 어설션 채우기
+        pass
+
+    def test_legacy_data_without_notes(self):
+        """notes 필드가 없는 기존 데이터 호환성 (None 으로 처리)"""
+        # TODO: 실제 어설션 채우기
+        pass
+
+
 class TestRootAndUtils:
     def test_root_returns_html(self):
         """GET / → HTML 응답 반환 검증"""
