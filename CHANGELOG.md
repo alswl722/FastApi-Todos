@@ -2,6 +2,16 @@
 
 ---
 
+## [v6.2.0] - 2026-05-05
+
+### 추가
+- **메모(notes) 필드** — `TodoItem`에 `notes: Optional[str] = None` 필드 추가 (`fastapi-app/main.py`)
+  - 입력 폼에 `<textarea id="notes">` 추가 (placeholder "메모 (선택)", `rows="2"`)
+  - 제출 시 `notes` 값을 `POST /todos`로 전송, 빈 값은 `null`로 저장
+- **테스트 stub** — `TestNotes` 클래스 7개 + `tests/e2e/test_notes.py` 5개 (assertion은 비어있음, 사용자가 채울 예정)
+
+---
+
 ## [v6.1.0] - 2026-05-04
 
 ### 추가
