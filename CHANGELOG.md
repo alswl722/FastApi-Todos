@@ -2,6 +2,25 @@
 
 ---
 
+## [v6.1.0] - 2026-05-04
+
+### 추가
+- **cAdvisor 통합** — 컨테이너 메트릭 수집기 (`gcr.io/cadvisor/cadvisor`) `docker-compose.yml`에 추가
+  - 포트 8080 노출, host volumes(`/`, `/var/run`, `/sys`, `/var/lib/docker/`) read-only 마운트
+  - `prometheus.yml`의 scrape targets에 `cadvisor:8080` 등록 → 컨테이너별 CPU/메모리/네트워크 메트릭 수집
+- **릴리스 파이프라인 자동화** (`/release` 슬래시 커맨드 + 두 Skill)
+  - `release-test-sync` — 마지막 태그 이후 변경 분석, 누락 테스트 stub 식별/생성
+  - `git-release-pipeline` — Conventional Commits 기반 버전 결정, 4곳 일괄 업데이트, 분리 커밋 dance, annotated tag
+  - `/release [version] [--no-push]` — Phase 1~5 통합 흐름
+- **버전 변경 감지 Hook** (`scripts/version-watch.sh`, `.claude/settings.json`)
+  - `version="X.Y.Z"` 문자열 수정 시 `PostToolUse:Edit` hook 발동
+  - Claude에 안내 메시지 주입 → `/release` 호출 제안
+
+### 변경
+- `CLAUDE.md` — 자동화 워크플로(명시 호출 + Hook), Conventional Commits 규칙, 절대 규칙 섹션 추가
+
+---
+
 ## [v6.0.0] - 2026-04-30
 
 ### 추가
