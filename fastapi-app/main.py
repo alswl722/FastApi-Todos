@@ -23,6 +23,7 @@ class TodoItem(BaseModel):
     priority: str = "medium"       # low / medium / high
     category: str = "other"        # work / study / exercise / hobby / other
     due_date: Optional[str] = None # YYYY-MM-DD
+    notes: Optional[str] = None    # 메모 (자유 텍스트)
 
 # JSON 파일 경로
 TODO_FILE = "todo.json"

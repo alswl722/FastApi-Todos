@@ -485,6 +485,9 @@
                 </select>
                 <input class="input-date" type="date" id="due_date">
             </div>
+            <div class="form-row">
+                <textarea class="input-notes" id="notes" placeholder="메모 (선택)" rows="2"></textarea>
+            </div>
             <button class="btn btn-primary" type="submit">+ 추가하기</button>
         </form>
     </div>
@@ -841,6 +844,7 @@
             priority:    document.getElementById('priority').value,
             category:    document.getElementById('category').value,
             due_date:    document.getElementById('due_date').value || null,
+            notes:       document.getElementById('notes').value || null,
         };
         const res = await fetch('/todos', {
             method:  'POST',
