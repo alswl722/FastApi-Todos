@@ -9,7 +9,7 @@ from prometheus_fastapi_instrumentator import Instrumentator
 app = FastAPI(
     title="Minji's Todo List",
     description="VDI 배포 과제용 업그레이드 버전",
-    version="6.1.0"
+    version="6.2.0"
 )
 
 Instrumentator().instrument(app).expose(app, endpoint="/metrics")
@@ -136,7 +136,7 @@ def health_check():
     todos = load_todos()
     return {
         "status": "ok",
-        "version": "6.1.0",
+        "version": "6.2.0",
         "total_todos": len(todos),
         "completed": sum(1 for t in todos if t["completed"]),
         "pending": sum(1 for t in todos if not t["completed"]),
