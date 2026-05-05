@@ -458,7 +458,7 @@
 
     <!-- 헤더 -->
     <div class="header-row">
-        <h1>Minji's To-Do List <span class="version-badge">v6.0.0</span></h1>
+        <h1>Minji's To-Do List <span class="version-badge">v6.2.0</span></h1>
         <button class="dark-toggle" id="dark-toggle" onclick="toggleDark()" title="다크모드 전환">🌙</button>
     </div>
 
@@ -484,6 +484,9 @@
                     <option value="other" selected>📌 기타</option>
                 </select>
                 <input class="input-date" type="date" id="due_date">
+            </div>
+            <div class="form-row">
+                <textarea class="input-notes" id="notes" placeholder="메모 (선택)" rows="2"></textarea>
             </div>
             <button class="btn btn-primary" type="submit">+ 추가하기</button>
         </form>
@@ -841,6 +844,7 @@
             priority:    document.getElementById('priority').value,
             category:    document.getElementById('category').value,
             due_date:    document.getElementById('due_date').value || null,
+            notes:       document.getElementById('notes').value || null,
         };
         const res = await fetch('/todos', {
             method:  'POST',
