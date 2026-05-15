@@ -2,6 +2,35 @@
 
 ---
 
+## [v7.0.0] - 2026-05-15
+
+### 추가
+- **JMeter 부하 테스트 인프라** (`jmeter/`)
+  - `Dockerfile` — multi-arch JMeter 5.4.1 이미지 (`eclipse-temurin:11-jre` 베이스, Jenkins amd64 / Mac arm64 모두 지원)
+  - `fastapi_test_plan.jmx` — FastAPI Todos 앱 대상 부하 테스트 플랜 (5개 sampler: `GET /`, `GET /health`, `GET /todos`, `GET /todos/stats`, `POST /todos`)
+  - `${__P(HOST, PORT, ...)}` 외부 properties로 환경 분리
+  - POST body는 `TodoItem` 모델 형식 (id, title, description, completed, priority, category) + 별도 HeaderManager로 Content-Type 헤더 설정
+- **InfluxDB 시계열 모니터링 스택**
+  - `docker-compose.yml`에 `influxdb:1.8` 서비스 추가 (port 8086, DB=jmeter, 인증 비활성)
+  - JMX에 `InfluxdbBackendListenerClient` 추가 → 부하 테스트 결과를 InfluxDB로 실시간 push
+  - Grafana #5496 대시보드 import → JMeter 메트릭 시각화 (RPS, 응답 시간 percentile, 에러율)
+- **Jenkins CI/CD 파이프라인** (8 stage)
+  - Checkout → Setup → Test & Coverage → Build → Push → Deploy → Build JMeter Image → Run JMeter Load Test
+  - 팀서버(`163.239.77.77:1537`) SSH 배포 + DockerHub 푸시
+
+### 변경
+- `docker-compose.yml`에 `loadtest-net` 네트워크 명시적 정의 추가 (Docker Compose V2 호환)
+- 제목 변경: "Princess's To-Do" 유지 (v6.3.0)
+
+### 수정
+- `fastapi-app/main.py`: `read_root()` 템플릿 경로를 모듈 기준 절대경로(`os.path.dirname(__file__)`)로 변경 — Jenkins workspace 루트에서 pytest 실행 시 발생하던 `FileNotFoundError` 해결
+- JMeter Dockerfile 베이스를 arm64 전용에서 multi-arch로 변경 — amd64 Jenkins 서버에서 발생하던 `exec format error` 해결
+- JMX 파일을 우리 앱에 맞게 재작성 — 기존에 하드코딩된 `localhost:5001`, `/users` 엔드포인트, POST의 `contentEncoding=application/json` (charset 잘못 사용) 모두 수정
+- JMX XML 주석 안의 `--network`가 만든 `XmlPullParserException` 수정 (XML 표준상 주석에 `--` 시퀀스 금지)
+- `docker cp src dst` 동작 함정 수정: `src/.` 형식으로 변경하여 보고서 디렉토리 한 단계 깊어지는 문제 해결
+
+---
+
 ## [v6.3.0] - 2026-05-15
 
 ### 추가
