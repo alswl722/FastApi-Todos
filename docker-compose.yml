@@ -110,3 +110,7 @@ volumes:
   grafana-data:
   prometheus-data:
   influxdb-data:
+
+networks:
+  loadtest-net:
+    driver: bridge
