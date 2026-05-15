@@ -2,6 +2,27 @@
 
 ---
 
+## [v6.3.0] - 2026-05-15
+
+### 추가
+- **일기장(Diary) 기능** — 매일 일기처럼 쓸 수 있는 별도 섹션
+  - `DiaryEntry` 모델: `id / date / title / content / mood` (6종 무드: happy/sad/angry/tired/love/thinking)
+  - 엔드포인트: `GET /diary` (날짜 내림차순, mood 필터), `GET /diary/by-date/{date}`, `GET /diary/stats`, `POST/PUT/DELETE /diary`
+  - 별도 `diary.json` 파일에 저장 (todo 데이터와 격리)
+  - UI: 할 일 ↔ 일기장 탭 전환, 무드 필터 버튼, 무드별 통계 그리드, 폴라로이드 스타일 일기 카드
+- **핑크 공주 테마 UI** — `templates/index.html` 전면 개편
+  - Pacifico/Quicksand/Gaegu 큐트 폰트, 무지개 그라데이션 제목, 떠다니는 이모지 빤짝이 28개 (✨💖🌟🎀💕⭐🦄👑💎🌸)
+  - twinkle/float-up/shimmer/wiggle/heart-beat/sparkle-spin/pulse-glow 등 9종 CSS 애니메이션
+  - 핑크-골드 그라데이션 버튼, 카드, 뱃지
+  - 다크모드 → 자줏빛 "밤하늘 공주모드"로 변환
+- **테스트 stub** — `tests/e2e/test_diary.py` 8개 (탭 전환 / CRUD / 무드 필터, 어설션은 사람이 채움)
+- **Diary 단위 테스트** — `TestDiaryModel/StateManagement/Create/Read/Update/Delete/Stats` 클래스 10개 (전부 실제 어설션 포함)
+
+### 변경
+- 제목 변경: "Minji's To-Do List" → "Princess's To-Do"
+
+---
+
 ## [v6.2.0] - 2026-05-05
 
 ### 추가
