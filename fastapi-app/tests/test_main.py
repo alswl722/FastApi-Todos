@@ -504,38 +504,61 @@ class TestCategory:
 class TestNotes:
     def test_todo_item_default_notes(self):
         """notes 기본값은 None"""
-        # TODO: 실제 어설션 채우기
-        pass
+        todo = TodoItem(id=1, title="Test", description="desc", completed=False)
+        assert todo.notes is None
 
     def test_create_todo_with_notes(self):
         """POST /todos → notes 필드가 정상 저장"""
-        # TODO: 실제 어설션 채우기
-        pass
+        todo = {"id": 1, "title": "T", "description": "d", "completed": False, "notes": "비밀 메모"}
+        response = client.post("/todos", json=todo)
+        assert response.status_code == 200
+        assert response.json()["notes"] == "비밀 메모"
 
     def test_create_todo_without_notes(self):
         """POST /todos → notes 미지정 시 None 으로 저장"""
-        # TODO: 실제 어설션 채우기
-        pass
+        todo = {"id": 2, "title": "T", "description": "d", "completed": False}
+        response = client.post("/todos", json=todo)
+        assert response.status_code == 200
+        assert response.json()["notes"] is None
 
     def test_update_todo_notes(self):
         """PUT /todos/{id} → notes 필드 수정"""
-        # TODO: 실제 어설션 채우기
-        pass
+        todo = TodoItem(id=1, title="T", description="d", completed=False, notes="원본")
+        save_todos([todo.model_dump()])
+        updated = {"id": 1, "title": "T", "description": "d", "completed": False, "notes": "수정됨"}
+        response = client.put("/todos/1", json=updated)
+        assert response.status_code == 200
+        assert response.json()["notes"] == "수정됨"
 
     def test_update_todo_clear_notes(self):
         """PUT /todos/{id} → notes 를 None 으로 비우기"""
-        # TODO: 실제 어설션 채우기
-        pass
+        todo = TodoItem(id=1, title="T", description="d", completed=False, notes="삭제될 메모")
+        save_todos([todo.model_dump()])
+        updated = {"id": 1, "title": "T", "description": "d", "completed": False, "notes": None}
+        response = client.put("/todos/1", json=updated)
+        assert response.status_code == 200
+        assert response.json()["notes"] is None
 
     def test_get_todos_returns_notes(self):
         """GET /todos → 응답에 notes 필드 포함"""
-        # TODO: 실제 어설션 채우기
-        pass
+        todo = TodoItem(id=1, title="T", description="d", completed=False, notes="응답 확인용")
+        save_todos([todo.model_dump()])
+        response = client.get("/todos")
+        assert response.status_code == 200
+        result = response.json()
+        assert len(result) == 1
+        assert "notes" in result[0]
+        assert result[0]["notes"] == "응답 확인용"
 
     def test_legacy_data_without_notes(self):
         """notes 필드가 없는 기존 데이터 호환성 (None 으로 처리)"""
-        # TODO: 실제 어설션 채우기
-        pass
+        legacy = [{"id": 1, "title": "L", "description": "d", "completed": False, "priority": "medium"}]
+        save_todos(legacy)
+        response = client.get("/todos")
+        assert response.status_code == 200
+        result = response.json()
+        assert len(result) == 1
+        assert result[0]["notes"] is None
 
 
 # ──────────────────────────────────────────────
