@@ -4,7 +4,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 
 import pytest
 from fastapi.testclient import TestClient
-from main import app, save_todos, load_todos, TodoItem
+from main import app, save_todos, load_todos, TodoItem, save_diary, load_diary, DiaryEntry
 
 client = TestClient(app)
 
@@ -14,8 +14,10 @@ client = TestClient(app)
 @pytest.fixture(autouse=True)
 def setup_and_teardown():
     save_todos([])
+    save_diary([])
     yield
     save_todos([])
+    save_diary([])
 
 
 # ──────────────────────────────────────────────
@@ -534,6 +536,170 @@ class TestNotes:
         """notes 필드가 없는 기존 데이터 호환성 (None 으로 처리)"""
         # TODO: 실제 어설션 채우기
         pass
+
+
+# ──────────────────────────────────────────────
+# 일기장(Diary) API 테스트 (v6.3.0 신규)
+# ──────────────────────────────────────────────
+class TestDiaryModel:
+    def test_diary_entry_default_mood(self):
+        """mood 기본값은 'happy'"""
+        entry = DiaryEntry(id=1, date="2026-05-15", title="오늘", content="좋은 하루")
+        assert entry.mood == "happy"
+
+    def test_diary_entry_all_fields(self):
+        """모든 필드 명시 시 정확히 저장"""
+        entry = DiaryEntry(id=2, date="2026-05-14", title="제목", content="내용", mood="love")
+        assert entry.id == 2
+        assert entry.date == "2026-05-14"
+        assert entry.title == "제목"
+        assert entry.content == "내용"
+        assert entry.mood == "love"
+
+
+class TestDiaryStateManagement:
+    def test_save_and_load_diary(self):
+        """save_diary / load_diary 함수가 정확히 동작"""
+        entries = [
+            {"id": 1, "date": "2026-05-15", "title": "A", "content": "내용", "mood": "happy"}
+        ]
+        save_diary(entries)
+        loaded = load_diary()
+        assert len(loaded) == 1
+        assert loaded[0]["title"] == "A"
+
+    def test_diary_isolated_between_tests(self):
+        """fixture로 인해 각 테스트가 빈 일기 상태로 시작"""
+        assert load_diary() == []
+
+
+class TestDiaryCreate:
+    def test_create_diary_entry(self):
+        """POST /diary → 일기 항목 생성"""
+        body = {"id": 1, "date": "2026-05-15", "title": "테스트", "content": "오늘은 좋은 날", "mood": "happy"}
+        response = client.post("/diary", json=body)
+        assert response.status_code == 200
+        assert response.json()["title"] == "테스트"
+        assert response.json()["mood"] == "happy"
+
+    def test_create_diary_default_mood(self):
+        """mood 미지정 시 기본값 'happy'"""
+        body = {"id": 2, "date": "2026-05-15", "title": "기본", "content": "내용"}
+        response = client.post("/diary", json=body)
+        assert response.status_code == 200
+        assert response.json()["mood"] == "happy"
+
+    def test_create_diary_missing_content(self):
+        """필수 필드 content 누락 시 422"""
+        body = {"id": 3, "date": "2026-05-15", "title": "X"}
+        response = client.post("/diary", json=body)
+        assert response.status_code == 422
+
+    def test_create_diary_missing_date(self):
+        """필수 필드 date 누락 시 422"""
+        body = {"id": 4, "title": "X", "content": "x"}
+        response = client.post("/diary", json=body)
+        assert response.status_code == 422
+
+
+class TestDiaryRead:
+    def test_get_diary_empty(self):
+        """빈 상태 GET /diary → 빈 리스트"""
+        response = client.get("/diary")
+        assert response.status_code == 200
+        assert response.json() == []
+
+    def test_get_diary_sorted_by_date_desc(self):
+        """GET /diary → 날짜 내림차순 정렬"""
+        save_diary([
+            {"id": 1, "date": "2026-05-10", "title": "old",   "content": "x", "mood": "happy"},
+            {"id": 2, "date": "2026-05-15", "title": "new",   "content": "x", "mood": "happy"},
+            {"id": 3, "date": "2026-05-12", "title": "mid",   "content": "x", "mood": "happy"},
+        ])
+        response = client.get("/diary")
+        result = response.json()
+        assert [e["title"] for e in result] == ["new", "mid", "old"]
+
+    def test_filter_by_mood(self):
+        """GET /diary?mood=love → love 항목만 반환"""
+        save_diary([
+            {"id": 1, "date": "2026-05-15", "title": "A", "content": "x", "mood": "love"},
+            {"id": 2, "date": "2026-05-14", "title": "B", "content": "x", "mood": "sad"},
+            {"id": 3, "date": "2026-05-13", "title": "C", "content": "x", "mood": "love"},
+        ])
+        response = client.get("/diary?mood=love")
+        result = response.json()
+        assert len(result) == 2
+        assert all(e["mood"] == "love" for e in result)
+
+    def test_get_by_date(self):
+        """GET /diary/by-date/{date} → 특정 날짜 항목만"""
+        save_diary([
+            {"id": 1, "date": "2026-05-15", "title": "Today A", "content": "x", "mood": "happy"},
+            {"id": 2, "date": "2026-05-14", "title": "Yesterday", "content": "x", "mood": "happy"},
+            {"id": 3, "date": "2026-05-15", "title": "Today B", "content": "x", "mood": "sad"},
+        ])
+        response = client.get("/diary/by-date/2026-05-15")
+        result = response.json()
+        assert len(result) == 2
+        assert {e["title"] for e in result} == {"Today A", "Today B"}
+
+
+class TestDiaryUpdate:
+    def test_update_diary(self):
+        """PUT /diary/{id} → 항목 수정"""
+        save_diary([{"id": 1, "date": "2026-05-15", "title": "원본", "content": "old", "mood": "happy"}])
+        body = {"id": 1, "date": "2026-05-15", "title": "수정됨", "content": "new", "mood": "love"}
+        response = client.put("/diary/1", json=body)
+        assert response.status_code == 200
+        assert response.json()["title"] == "수정됨"
+        assert response.json()["mood"] == "love"
+
+    def test_update_diary_not_found(self):
+        """존재하지 않는 id 수정 시 404"""
+        body = {"id": 999, "date": "2026-05-15", "title": "x", "content": "x", "mood": "happy"}
+        response = client.put("/diary/999", json=body)
+        assert response.status_code == 404
+
+
+class TestDiaryDelete:
+    def test_delete_diary(self):
+        """DELETE /diary/{id} → 항목 삭제"""
+        save_diary([{"id": 1, "date": "2026-05-15", "title": "X", "content": "x", "mood": "happy"}])
+        response = client.delete("/diary/1")
+        assert response.status_code == 200
+        assert response.json()["message"] == "Diary entry deleted"
+        assert load_diary() == []
+
+    def test_delete_diary_not_found(self):
+        """존재하지 않는 id 삭제 시 404"""
+        response = client.delete("/diary/999")
+        assert response.status_code == 404
+
+
+class TestDiaryStats:
+    def test_diary_stats_empty(self):
+        """빈 상태 /diary/stats → total 0, 모든 mood 0"""
+        response = client.get("/diary/stats")
+        data = response.json()
+        assert data["total"] == 0
+        assert data["by_mood"]["happy"] == 0
+        assert data["by_mood"]["love"] == 0
+
+    def test_diary_stats_by_mood(self):
+        """mood별 카운트 정확성"""
+        save_diary([
+            {"id": 1, "date": "2026-05-15", "title": "A", "content": "x", "mood": "happy"},
+            {"id": 2, "date": "2026-05-14", "title": "B", "content": "x", "mood": "happy"},
+            {"id": 3, "date": "2026-05-13", "title": "C", "content": "x", "mood": "love"},
+            {"id": 4, "date": "2026-05-12", "title": "D", "content": "x", "mood": "sad"},
+        ])
+        response = client.get("/diary/stats")
+        data = response.json()
+        assert data["total"] == 4
+        assert data["by_mood"]["happy"] == 2
+        assert data["by_mood"]["love"]  == 1
+        assert data["by_mood"]["sad"]   == 1
 
 
 class TestRootAndUtils:

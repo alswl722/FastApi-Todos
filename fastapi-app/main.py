@@ -25,10 +25,20 @@ class TodoItem(BaseModel):
     due_date: Optional[str] = None # YYYY-MM-DD
     notes: Optional[str] = None    # 메모 (자유 텍스트)
 
+# 일기 항목 모델
+class DiaryEntry(BaseModel):
+    id: int
+    date: str                      # YYYY-MM-DD
+    title: str
+    content: str
+    mood: str = "happy"            # happy / sad / angry / tired / love / thinking
+
 # JSON 파일 경로
 TODO_FILE = "todo.json"
+DIARY_FILE = "diary.json"
 
 TODO_NOT_FOUND = "To-Do item not found"
+DIARY_NOT_FOUND = "Diary entry not found"
 
 # JSON 파일에서 To-Do 항목 로드
 def load_todos():
@@ -41,6 +51,18 @@ def load_todos():
 def save_todos(todos):
     with open(TODO_FILE, "w") as file:
         json.dump(todos, file, indent=4, ensure_ascii=False)
+
+# JSON 파일에서 일기 항목 로드
+def load_diary():
+    if os.path.exists(DIARY_FILE):
+        with open(DIARY_FILE, "r") as file:
+            return json.load(file)
+    return []
+
+# JSON 파일에 일기 항목 저장
+def save_diary(entries):
+    with open(DIARY_FILE, "w") as file:
+        json.dump(entries, file, indent=4, ensure_ascii=False)
 
 # To-Do 목록 조회 (priority / completed 필터 지원)
 @app.get("/todos", response_model=list[TodoItem])
@@ -141,6 +163,73 @@ def health_check():
         "completed": sum(1 for t in todos if t["completed"]),
         "pending": sum(1 for t in todos if not t["completed"]),
     }
+
+# ──────────────────────────────────────────────
+# 일기장 (Diary) API
+# ──────────────────────────────────────────────
+
+# 일기 목록 조회 (mood 필터 + 날짜 정렬)
+@app.get("/diary", response_model=list[DiaryEntry])
+def get_diary_entries(
+    mood: Annotated[Optional[str], Query(description="happy / sad / angry / tired / love / thinking")] = None,
+):
+    entries = load_diary()
+    if mood is not None:
+        entries = [e for e in entries if e.get("mood", "happy") == mood]
+    entries.sort(key=lambda e: e.get("date", ""), reverse=True)
+    return entries
+
+# 특정 날짜의 일기 조회
+@app.get("/diary/by-date/{date}", response_model=list[DiaryEntry])
+def get_diary_by_date(date: str):
+    entries = load_diary()
+    return [e for e in entries if e.get("date") == date]
+
+# 일기 통계
+@app.get("/diary/stats")
+def get_diary_stats():
+    entries = load_diary()
+    total = len(entries)
+    return {
+        "total": total,
+        "by_mood": {
+            "happy":    sum(1 for e in entries if e.get("mood", "happy") == "happy"),
+            "sad":      sum(1 for e in entries if e.get("mood", "happy") == "sad"),
+            "angry":    sum(1 for e in entries if e.get("mood", "happy") == "angry"),
+            "tired":    sum(1 for e in entries if e.get("mood", "happy") == "tired"),
+            "love":     sum(1 for e in entries if e.get("mood", "happy") == "love"),
+            "thinking": sum(1 for e in entries if e.get("mood", "happy") == "thinking"),
+        },
+    }
+
+# 신규 일기 추가
+@app.post("/diary", response_model=DiaryEntry)
+def create_diary_entry(entry: DiaryEntry):
+    entries = load_diary()
+    entries.append(entry.model_dump())
+    save_diary(entries)
+    return entry
+
+# 일기 수정
+@app.put("/diary/{entry_id}", response_model=DiaryEntry, responses={404: {"description": DIARY_NOT_FOUND}})
+def update_diary_entry(entry_id: int, updated: DiaryEntry):
+    entries = load_diary()
+    for entry in entries:
+        if entry["id"] == entry_id:
+            entry.update(updated.model_dump())
+            save_diary(entries)
+            return updated
+    raise HTTPException(status_code=404, detail=DIARY_NOT_FOUND)
+
+# 일기 삭제
+@app.delete("/diary/{entry_id}", responses={404: {"description": DIARY_NOT_FOUND}})
+def delete_diary_entry(entry_id: int):
+    entries = load_diary()
+    new_entries = [e for e in entries if e["id"] != entry_id]
+    if len(new_entries) == len(entries):
+        raise HTTPException(status_code=404, detail=DIARY_NOT_FOUND)
+    save_diary(new_entries)
+    return {"message": "Diary entry deleted"}
 
 # HTML 파일 서빙
 @app.get("/", response_class=HTMLResponse)
