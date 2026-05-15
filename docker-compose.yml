@@ -68,6 +68,18 @@ services:
       - /dev/kmsg
     networks:
       - loadtest-net
+  influxdb:
+    image: influxdb:1.8
+    container_name: influxdb
+    ports:
+      - "8086:8086"
+    environment:
+      - INFLUXDB_DB=jmeter
+      - INFLUXDB_HTTP_AUTH_ENABLED=false
+    volumes:
+      - influxdb-data:/var/lib/influxdb
+    networks:
+      - loadtest-net
   jmeter:
     build:
       context: ./jmeter
@@ -97,3 +109,4 @@ volumes:
   sonarqube_extensions:
   grafana-data:
   prometheus-data:
+  influxdb-data:
