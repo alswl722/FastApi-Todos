@@ -398,7 +398,7 @@ class TestHealthCheck:
         assert response.status_code == 200
         data = response.json()
         assert data["status"] == "ok"
-        assert data["version"] == "6.3.0"
+        assert data["version"] == "7.0.0"
         assert data["total_todos"] == 0
         assert data["completed"] == 0
         assert data["pending"] == 0
