@@ -598,6 +598,67 @@
         }
         .todo-meta { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
 
+        /* 반복 배지 */
+        .badge-recurrence {
+            background: linear-gradient(135deg, #b388eb, #d9b3ff);
+            color: #fff;
+        }
+        /* 완료 날짜 표시 */
+        .completed-at {
+            font-size: 0.78rem;
+            color: var(--text-muted);
+            font-weight: 600;
+        }
+        /* 일기 ↔ 할 일 연결 위젯 */
+        .linked-todos-wrap {
+            width: 100%;
+            background: var(--card2);
+            border: 1.5px dashed var(--border);
+            border-radius: 12px;
+            padding: 10px 12px;
+        }
+        .linked-todos-label {
+            display: block;
+            font-weight: 700;
+            color: var(--text);
+            font-size: 0.9rem;
+            margin-bottom: 6px;
+        }
+        .linked-todos-list {
+            display: flex; flex-direction: column; gap: 4px;
+            max-height: 140px; overflow-y: auto;
+        }
+        .linked-todos-empty {
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            font-style: italic;
+        }
+        .linked-todo-item {
+            display: flex; align-items: center; gap: 8px;
+            font-size: 0.9rem; color: var(--text-sub);
+            cursor: pointer;
+            padding: 3px 4px;
+            border-radius: 6px;
+        }
+        .linked-todo-item:hover { background: var(--accent-bg); }
+        .linked-todo-check { accent-color: var(--accent); }
+        /* 일기 카드 내 연결된 할 일 */
+        .diary-linked-todos {
+            margin-top: 8px;
+            padding: 6px 10px;
+            background: var(--accent-bg);
+            border-left: 3px solid var(--accent);
+            border-radius: 8px;
+            font-size: 0.85rem;
+            color: var(--text-sub);
+        }
+        .diary-linked-todos .dlt-title {
+            font-weight: 700;
+            color: var(--text);
+            margin-bottom: 3px;
+        }
+        .diary-linked-todos ul { margin: 0; padding-left: 18px; }
+
         .badge {
             padding: 3px 11px;
             border-radius: 20px;
@@ -867,6 +928,12 @@
                         <option value="other" selected>📌 기타</option>
                     </select>
                     <input class="input-date" type="date" id="due_date">
+                    <select class="input-priority" id="recurrence">
+                        <option value="" selected>🚫 반복 없음</option>
+                        <option value="daily">🔁 매일</option>
+                        <option value="weekly">📅 매주</option>
+                        <option value="monthly">🗓️ 매월</option>
+                    </select>
                 </div>
                 <div class="form-row">
                     <textarea id="notes" placeholder="메모 (선택) — 비밀스러운 메모를 적어보세요 🎀"></textarea>
@@ -992,6 +1059,14 @@
                 <div class="form-row">
                     <textarea id="diary-content" placeholder="오늘 있었던 일을 적어보세요... 🎀✨" rows="5" required></textarea>
                 </div>
+                <div class="form-row">
+                    <div class="linked-todos-wrap">
+                        <label class="linked-todos-label">🔗 이 날 완료한 할 일 첨부 (선택)</label>
+                        <div class="linked-todos-list" id="diary-linked-todos-list">
+                            <span class="linked-todos-empty">📅 날짜를 선택하면 완료한 할 일이 표시돼요</span>
+                        </div>
+                    </div>
+                </div>
                 <button class="btn btn-primary" type="submit">💖 일기 저장 💖</button>
             </form>
         </div>
@@ -1049,6 +1124,12 @@
                 <option value="other">📌 기타</option>
             </select>
             <input type="date" id="edit-due_date">
+            <select id="edit-recurrence">
+                <option value="">🚫 반복 없음</option>
+                <option value="daily">🔁 매일</option>
+                <option value="weekly">📅 매주</option>
+                <option value="monthly">🗓️ 매월</option>
+            </select>
             <textarea id="edit-notes" placeholder="메모 (선택)"></textarea>
         </div>
         <div class="modal-actions">
@@ -1074,6 +1155,12 @@
                 <option value="thinking">🤔 생각중</option>
             </select>
             <textarea id="diary-edit-content" placeholder="내용" rows="6"></textarea>
+            <div class="linked-todos-wrap">
+                <label class="linked-todos-label">🔗 이 날 완료한 할 일 첨부</label>
+                <div class="linked-todos-list" id="diary-edit-linked-todos-list">
+                    <span class="linked-todos-empty">📅 날짜를 선택하면 완료한 할 일이 표시돼요</span>
+                </div>
+            </div>
         </div>
         <div class="modal-actions">
             <button class="btn btn-secondary" onclick="closeDiaryModal()">취소</button>
@@ -1234,6 +1321,12 @@
             card.className = `todo-card priority-${todo.priority} category-${cat} ${todo.completed ? 'completed' : ''}`;
 
             const notesHtml = todo.notes ? `<div class="todo-notes">🎀 ${escapeHtml(todo.notes)}</div>` : '';
+            const recurrenceBadge = todo.recurrence
+                ? `<span class="badge badge-recurrence">${labelRecurrence(todo.recurrence)}</span>`
+                : '';
+            const completedAtBadge = todo.completed && todo.completed_at
+                ? `<span class="completed-at">✅ ${escapeHtml(todo.completed_at)}</span>`
+                : '';
 
             card.innerHTML = `
                 <input type="checkbox" class="toggle-check" ${todo.completed ? 'checked' : ''}
@@ -1245,7 +1338,9 @@
                     <div class="todo-meta">
                         <span class="badge badge-${todo.priority}">${labelPriority(todo.priority)}</span>
                         <span class="badge badge-cat-${cat}">${labelCategory(cat)}</span>
+                        ${recurrenceBadge}
                         ${ddayBadge(todo.due_date, todo.completed)}
+                        ${completedAtBadge}
                     </div>
                 </div>
                 <div class="todo-actions">
@@ -1314,6 +1409,7 @@
         document.getElementById('edit-priority').value    = todo.priority || 'medium';
         document.getElementById('edit-category').value    = todo.category || 'other';
         document.getElementById('edit-due_date').value    = todo.due_date || '';
+        document.getElementById('edit-recurrence').value  = todo.recurrence || '';
         document.getElementById('edit-notes').value       = todo.notes || '';
         document.getElementById('edit-modal').classList.add('open');
     }
@@ -1326,14 +1422,16 @@
     async function saveEdit() {
         const todo = allTodos.find(t => t.id === editingId);
         const updated = {
-            id:          editingId,
-            title:       document.getElementById('edit-title').value,
-            description: document.getElementById('edit-description').value,
-            completed:   todo.completed,
-            priority:    document.getElementById('edit-priority').value,
-            category:    document.getElementById('edit-category').value,
-            due_date:    document.getElementById('edit-due_date').value || null,
-            notes:       document.getElementById('edit-notes').value || null,
+            id:           editingId,
+            title:        document.getElementById('edit-title').value,
+            description:  document.getElementById('edit-description').value,
+            completed:    todo.completed,
+            priority:     document.getElementById('edit-priority').value,
+            category:     document.getElementById('edit-category').value,
+            due_date:     document.getElementById('edit-due_date').value || null,
+            notes:        document.getElementById('edit-notes').value || null,
+            recurrence:   document.getElementById('edit-recurrence').value || null,
+            completed_at: todo.completed_at || null,
         };
         const res = await fetch(`/todos/${editingId}`, {
             method:  'PUT',
@@ -1346,21 +1444,27 @@
     document.getElementById('todo-form').addEventListener('submit', async e => {
         e.preventDefault();
         const body = {
-            id:          Date.now(),
-            title:       document.getElementById('title').value,
-            description: document.getElementById('description').value,
-            completed:   false,
-            priority:    document.getElementById('priority').value,
-            category:    document.getElementById('category').value,
-            due_date:    document.getElementById('due_date').value || null,
-            notes:       document.getElementById('notes').value || null,
+            id:           Date.now(),
+            title:        document.getElementById('title').value,
+            description:  document.getElementById('description').value,
+            completed:    false,
+            priority:     document.getElementById('priority').value,
+            category:     document.getElementById('category').value,
+            due_date:     document.getElementById('due_date').value || null,
+            notes:        document.getElementById('notes').value || null,
+            recurrence:   document.getElementById('recurrence').value || null,
+            completed_at: null,
         };
         const res = await fetch('/todos', {
             method:  'POST',
             headers: { 'Content-Type': 'application/json' },
             body:    JSON.stringify(body),
         });
-        if (res.ok) { e.target.reset(); fetchTodos(); }
+        if (res.ok) {
+            e.target.reset();
+            document.getElementById('recurrence').value = '';
+            fetchTodos();
+        }
     });
 
     document.getElementById('edit-modal').addEventListener('click', function(e) {
@@ -1414,6 +1518,16 @@
             const mood = entry.mood || 'happy';
             const card = document.createElement('div');
             card.className = 'diary-card';
+            const linkedIds = entry.linked_todo_ids || [];
+            const linkedTitles = linkedIds
+                .map(id => (allTodos.find(t => t.id === id) || {}).title)
+                .filter(Boolean);
+            const linkedHtml = linkedTitles.length
+                ? `<div class="diary-linked-todos">
+                       <div class="dlt-title">🔗 이 날 완료한 할 일</div>
+                       <ul>${linkedTitles.map(t => `<li>${escapeHtml(t)}</li>`).join('')}</ul>
+                   </div>`
+                : '';
             card.innerHTML = `
                 <div class="diary-card-head">
                     <span class="diary-date">💖 ${escapeHtml(entry.date)}</span>
@@ -1421,6 +1535,7 @@
                 </div>
                 <div class="diary-title">${escapeHtml(entry.title)}</div>
                 <div class="diary-content">${escapeHtml(entry.content)}</div>
+                ${linkedHtml}
                 <div class="diary-actions">
                     <button class="btn btn-warning btn-sm" onclick="openDiaryEdit(${entry.id})">수정</button>
                     <button class="btn btn-danger  btn-sm" onclick="deleteDiary(${entry.id})">삭제</button>
@@ -1428,6 +1543,34 @@
             `;
             list.appendChild(card);
         });
+    }
+
+    // 특정 날짜에 완료된 todo를 fetch해서 컨테이너에 체크박스로 렌더
+    async function loadCompletedTodosFor(dateStr, containerId, preselectedIds) {
+        const container = document.getElementById(containerId);
+        if (!dateStr) {
+            container.innerHTML = '<span class="linked-todos-empty">📅 날짜를 선택하면 완료한 할 일이 표시돼요</span>';
+            return;
+        }
+        const res = await fetch(`/todos/completed-on/${dateStr}`);
+        const todos = await res.json();
+        const checked = new Set(preselectedIds || []);
+        if (todos.length === 0) {
+            container.innerHTML = '<span class="linked-todos-empty">✨ 이 날 완료한 할 일이 없어요</span>';
+            return;
+        }
+        container.innerHTML = todos.map(t => `
+            <label class="linked-todo-item">
+                <input type="checkbox" class="linked-todo-check" value="${t.id}" ${checked.has(t.id) ? 'checked' : ''}>
+                <span>${escapeHtml(t.title)}</span>
+            </label>
+        `).join('');
+    }
+
+    function collectLinkedIds(containerId) {
+        return Array.from(
+            document.querySelectorAll(`#${containerId} .linked-todo-check:checked`)
+        ).map(el => Number(el.value));
     }
 
     function setMoodFilter(m, btn) {
@@ -1451,6 +1594,7 @@
         document.getElementById('diary-edit-title').value   = e.title;
         document.getElementById('diary-edit-mood').value    = e.mood || 'happy';
         document.getElementById('diary-edit-content').value = e.content;
+        loadCompletedTodosFor(e.date, 'diary-edit-linked-todos-list', e.linked_todo_ids || []);
         document.getElementById('diary-edit-modal').classList.add('open');
     }
 
@@ -1461,11 +1605,12 @@
 
     async function saveDiaryEdit() {
         const updated = {
-            id:      editingDiary,
-            date:    document.getElementById('diary-edit-date').value,
-            title:   document.getElementById('diary-edit-title').value,
-            content: document.getElementById('diary-edit-content').value,
-            mood:    document.getElementById('diary-edit-mood').value,
+            id:               editingDiary,
+            date:             document.getElementById('diary-edit-date').value,
+            title:            document.getElementById('diary-edit-title').value,
+            content:          document.getElementById('diary-edit-content').value,
+            mood:             document.getElementById('diary-edit-mood').value,
+            linked_todo_ids:  collectLinkedIds('diary-edit-linked-todos-list'),
         };
         const res = await fetch(`/diary/${editingDiary}`, {
             method:  'PUT',
@@ -1478,28 +1623,44 @@
     document.getElementById('diary-form').addEventListener('submit', async e => {
         e.preventDefault();
         const body = {
-            id:      Date.now(),
-            date:    document.getElementById('diary-date').value,
-            title:   document.getElementById('diary-title').value,
-            content: document.getElementById('diary-content').value,
-            mood:    document.getElementById('diary-mood').value,
+            id:               Date.now(),
+            date:             document.getElementById('diary-date').value,
+            title:            document.getElementById('diary-title').value,
+            content:          document.getElementById('diary-content').value,
+            mood:             document.getElementById('diary-mood').value,
+            linked_todo_ids:  collectLinkedIds('diary-linked-todos-list'),
         };
         const res = await fetch('/diary', {
             method:  'POST',
             headers: { 'Content-Type': 'application/json' },
             body:    JSON.stringify(body),
         });
-        if (res.ok) { e.target.reset(); document.getElementById('diary-mood').value = 'happy'; fetchDiary(); }
+        if (res.ok) {
+            e.target.reset();
+            document.getElementById('diary-mood').value = 'happy';
+            loadCompletedTodosFor(document.getElementById('diary-date').value, 'diary-linked-todos-list', []);
+            fetchDiary();
+        }
+    });
+
+    // 날짜 변경 시 완료 todo 목록 갱신 (작성 폼)
+    document.getElementById('diary-date').addEventListener('change', e => {
+        loadCompletedTodosFor(e.target.value, 'diary-linked-todos-list', []);
+    });
+    // 날짜 변경 시 완료 todo 목록 갱신 (편집 모달)
+    document.getElementById('diary-edit-date').addEventListener('change', e => {
+        loadCompletedTodosFor(e.target.value, 'diary-edit-linked-todos-list', []);
     });
 
     document.getElementById('diary-edit-modal').addEventListener('click', function(e) {
         if (e.target === this) closeDiaryModal();
     });
 
-    // 오늘 날짜 기본값
+    // 오늘 날짜 기본값 + 완료 todo 위젯 초기 로드
     (function setTodayDate() {
         const today = new Date().toISOString().slice(0, 10);
         document.getElementById('diary-date').value = today;
+        loadCompletedTodosFor(today, 'diary-linked-todos-list', []);
     })();
 
     // ─────────────────────────────────────────
@@ -1510,6 +1671,9 @@
     }
     function labelCategory(c) {
         return { work: '일', study: '공부', exercise: '운동', hobby: '취미', other: '기타' }[c] || c;
+    }
+    function labelRecurrence(r) {
+        return { daily: '🔁 매일', weekly: '📅 매주', monthly: '🗓️ 매월' }[r] || r;
     }
     function escapeHtml(str) {
         return String(str)

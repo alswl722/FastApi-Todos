@@ -6,6 +6,8 @@ import json
 import logging
 import os
 import time
+from calendar import monthrange
+from datetime import date, datetime, timedelta
 from multiprocessing import Queue
 from os import getenv
 from prometheus_fastapi_instrumentator import Instrumentator
@@ -64,6 +66,8 @@ class TodoItem(BaseModel):
     category: str = "other"        # work / study / exercise / hobby / other
     due_date: Optional[str] = None # YYYY-MM-DD
     notes: Optional[str] = None    # 메모 (자유 텍스트)
+    completed_at: Optional[str] = None  # YYYY-MM-DD, 완료된 날짜 (자동 기록)
+    recurrence: Optional[str] = None    # daily / weekly / monthly / None
 
 # 일기 항목 모델
 class DiaryEntry(BaseModel):
@@ -72,6 +76,7 @@ class DiaryEntry(BaseModel):
     title: str
     content: str
     mood: str = "happy"            # happy / sad / angry / tired / love / thinking
+    linked_todo_ids: list[int] = []  # 이 일기에 연결된 todo IDs
 
 # JSON 파일 경로
 TODO_FILE = "todo.json"
@@ -107,6 +112,46 @@ def save_diary(entries):
     with open(DIARY_FILE, "w") as file:
         json.dump(entries, file, indent=4, ensure_ascii=False)
 
+# 반복 todo의 다음 due_date 계산
+def _next_due_date(due_date_str: Optional[str], recurrence: Optional[str]) -> Optional[str]:
+    if not due_date_str or not recurrence:
+        return None
+    try:
+        dt = datetime.strptime(due_date_str, "%Y-%m-%d")
+    except ValueError:
+        return None
+    if recurrence == "daily":
+        dt += timedelta(days=1)
+    elif recurrence == "weekly":
+        dt += timedelta(weeks=1)
+    elif recurrence == "monthly":
+        month = dt.month + 1
+        year = dt.year
+        if month > 12:
+            month = 1
+            year += 1
+        day = min(dt.day, monthrange(year, month)[1])
+        dt = dt.replace(year=year, month=month, day=day)
+    else:
+        return None
+    return dt.strftime("%Y-%m-%d")
+
+# 완료된 반복 todo에서 다음 회차 자동 생성
+def _spawn_next_recurrence(todo: dict, todos: list) -> Optional[dict]:
+    next_date = _next_due_date(todo.get("due_date"), todo.get("recurrence"))
+    if not next_date:
+        return None
+    new_id = max((t["id"] for t in todos), default=0) + 1
+    new_todo = {
+        **todo,
+        "id": new_id,
+        "completed": False,
+        "completed_at": None,
+        "due_date": next_date,
+    }
+    todos.append(new_todo)
+    return new_todo
+
 # To-Do 목록 조회 (priority / completed 필터 지원)
 @app.get("/todos", response_model=list[TodoItem])
 def get_todos(
@@ -129,6 +174,12 @@ def search_todos(keyword: str):
     todos = load_todos()
     results = [todo for todo in todos if keyword.lower() in todo["title"].lower()]
     return results
+
+# 특정 날짜에 완료된 todo 목록 (일기 첨부 후보)
+@app.get("/todos/completed-on/{target_date}", response_model=list[TodoItem])
+def get_todos_completed_on(target_date: str):
+    todos = load_todos()
+    return [t for t in todos if t.get("completed_at") == target_date]
 
 # To-Do 통계 조회
 @app.get("/todos/stats")
@@ -169,7 +220,13 @@ def update_todo(todo_id: int, updated_todo: TodoItem):
     todos = load_todos()
     for todo in todos:
         if todo["id"] == todo_id:
+            was_completed = todo.get("completed", False)
             todo.update(updated_todo.model_dump())
+            if not was_completed and todo["completed"] and not todo.get("completed_at"):
+                todo["completed_at"] = date.today().isoformat()
+                _spawn_next_recurrence(todo, todos)
+            elif was_completed and not todo["completed"]:
+                todo["completed_at"] = None
             save_todos(todos)
             return updated_todo
     raise HTTPException(status_code=404, detail=TODO_NOT_FOUND)
@@ -180,7 +237,13 @@ def toggle_todo(todo_id: int):
     todos = load_todos()
     for todo in todos:
         if todo["id"] == todo_id:
-            todo["completed"] = not todo["completed"]
+            was_completed = todo["completed"]
+            todo["completed"] = not was_completed
+            if not was_completed:
+                todo["completed_at"] = date.today().isoformat()
+                _spawn_next_recurrence(todo, todos)
+            else:
+                todo["completed_at"] = None
             save_todos(todos)
             return todo
     raise HTTPException(status_code=404, detail=TODO_NOT_FOUND)
@@ -227,6 +290,17 @@ def get_diary_entries(
 def get_diary_by_date(date: str):
     entries = load_diary()
     return [e for e in entries if e.get("date") == date]
+
+# 일기에 연결된 todo들 조회
+@app.get("/diary/{entry_id}/todos", response_model=list[TodoItem], responses={404: {"description": DIARY_NOT_FOUND}})
+def get_diary_linked_todos(entry_id: int):
+    entries = load_diary()
+    for entry in entries:
+        if entry["id"] == entry_id:
+            linked_ids = set(entry.get("linked_todo_ids", []))
+            todos = load_todos()
+            return [t for t in todos if t["id"] in linked_ids]
+    raise HTTPException(status_code=404, detail=DIARY_NOT_FOUND)
 
 # 일기 통계
 @app.get("/diary/stats")
