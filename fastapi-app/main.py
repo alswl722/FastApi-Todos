@@ -1,10 +1,15 @@
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 from typing import Annotated, Optional
 import json
+import logging
 import os
+import time
+from multiprocessing import Queue
+from os import getenv
 from prometheus_fastapi_instrumentator import Instrumentator
+from logging_loki import LokiQueueHandler
 
 app = FastAPI(
     title="Minji's Todo List",
@@ -12,7 +17,42 @@ app = FastAPI(
     version="7.0.0"
 )
 
+# --- 모니터링 설정 (Prometheus & Loki) ---
+
+# 1. Prometheus 메트릭스 엔드포인트 (/metrics)
 Instrumentator().instrument(app).expose(app, endpoint="/metrics")
+
+# 2. Loki 로그 핸들러
+loki_url = getenv("LOKI_ENDPOINT", "http://loki:3100/loki/api/v1/push")
+
+loki_logs_handler = LokiQueueHandler(
+    Queue(-1),
+    url=loki_url,
+    tags={"application": "fastapi"},
+    version="1",
+)
+
+# 3. 커스텀 액세스 로거
+custom_logger = logging.getLogger("custom.access")
+custom_logger.setLevel(logging.INFO)
+custom_logger.addHandler(loki_logs_handler)
+
+# --- 미들웨어: 모든 HTTP 요청을 Loki로 전송 ---
+
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    start_time = time.time()
+    response = await call_next(request)
+    duration = time.time() - start_time
+
+    client_host = request.client.host if request.client else "-"
+    log_message = (
+        f'{client_host} - "{request.method} {request.url.path} HTTP/1.1" '
+        f'{response.status_code} {duration:.3f}s'
+    )
+    custom_logger.info(log_message)
+
+    return response
 
 # To-Do 항목 모델
 class TodoItem(BaseModel):
