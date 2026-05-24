@@ -16,7 +16,7 @@ from logging_loki import LokiQueueHandler
 app = FastAPI(
     title="Minji's Todo List",
     description="VDI 배포 과제용 업그레이드 버전",
-    version="7.0.0"
+    version="7.1.0"
 )
 
 # --- 모니터링 설정 (Prometheus & Loki) ---
@@ -264,7 +264,7 @@ def health_check():
     todos = load_todos()
     return {
         "status": "ok",
-        "version": "7.0.0",
+        "version": "7.1.0",
         "total_todos": len(todos),
         "completed": sum(1 for t in todos if t["completed"]),
         "pending": sum(1 for t in todos if not t["completed"]),
