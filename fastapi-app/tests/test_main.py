@@ -738,3 +738,204 @@ class TestRootAndUtils:
             os.remove("todo.json")
         result = load_todos()
         assert result == []
+
+
+# ──────────────────────────────────────────────
+# completed_at 자동 기록 테스트 (v7.1.0 신규)
+# ──────────────────────────────────────────────
+class TestCompletedAt:
+    def test_completed_at_default_none(self):
+        """TodoItem 생성 시 completed_at 기본값은 None"""
+        todo = TodoItem(id=1, title="T", description="d", completed=False)
+        # TODO: assert todo.completed_at is None
+        pass
+
+    def test_completed_at_set_on_toggle(self):
+        """PATCH /todos/{id}/toggle 으로 완료시 completed_at 자동 기록 (오늘 날짜)"""
+        save_todos([{"id": 1, "title": "T", "description": "d", "completed": False,
+                     "priority": "medium", "category": "other"}])
+        response = client.patch("/todos/1/toggle")
+        # TODO: assert response.status_code == 200
+        # TODO: assert response.json()["completed"] is True
+        # TODO: assert response.json()["completed_at"] == date.today().isoformat()
+        pass
+
+    def test_completed_at_set_on_put_complete(self):
+        """PUT /todos/{id} 으로 completed=True 전환 시 completed_at 자동 기록"""
+        save_todos([{"id": 1, "title": "T", "description": "d", "completed": False,
+                     "priority": "medium", "category": "other"}])
+        body = {"id": 1, "title": "T", "description": "d", "completed": True,
+                "priority": "medium", "category": "other"}
+        response = client.put("/todos/1", json=body)
+        # TODO: assert response.status_code == 200
+        # TODO: 저장된 todo의 completed_at이 오늘 날짜인지 검증
+        pass
+
+    def test_completed_at_cleared_on_uncomplete(self):
+        """완료된 todo를 미완료로 되돌리면 completed_at이 None으로 초기화"""
+        save_todos([{"id": 1, "title": "T", "description": "d", "completed": True,
+                     "completed_at": "2026-05-20",
+                     "priority": "medium", "category": "other"}])
+        response = client.patch("/todos/1/toggle")
+        # TODO: assert response.json()["completed"] is False
+        # TODO: assert response.json()["completed_at"] is None
+        pass
+
+
+# ──────────────────────────────────────────────
+# 반복 todo (recurrence) 테스트 (v7.1.0 신규)
+# ──────────────────────────────────────────────
+class TestRecurrence:
+    def test_recurrence_default_none(self):
+        """TodoItem 생성 시 recurrence 기본값은 None"""
+        todo = TodoItem(id=1, title="T", description="d", completed=False)
+        # TODO: assert todo.recurrence is None
+        pass
+
+    def test_recurrence_daily_spawn(self):
+        """recurrence=daily, due_date 있는 todo 완료 시 다음날 due_date로 새 todo 생성"""
+        save_todos([{"id": 1, "title": "물 마시기", "description": "d", "completed": False,
+                     "priority": "medium", "category": "other",
+                     "due_date": "2026-05-15", "recurrence": "daily"}])
+        client.patch("/todos/1/toggle")
+        todos = load_todos()
+        # TODO: assert len(todos) == 2
+        # TODO: 새 todo의 due_date == "2026-05-16"
+        # TODO: 새 todo는 completed=False
+        # TODO: 새 todo도 recurrence="daily" 유지
+        pass
+
+    def test_recurrence_weekly_spawn(self):
+        """recurrence=weekly → 다음 due_date는 +7일"""
+        save_todos([{"id": 1, "title": "회의", "description": "d", "completed": False,
+                     "priority": "medium", "category": "other",
+                     "due_date": "2026-05-15", "recurrence": "weekly"}])
+        client.patch("/todos/1/toggle")
+        todos = load_todos()
+        # TODO: 새 todo의 due_date == "2026-05-22"
+        pass
+
+    def test_recurrence_monthly_spawn(self):
+        """recurrence=monthly → 다음 due_date는 다음달 같은 일"""
+        save_todos([{"id": 1, "title": "월세", "description": "d", "completed": False,
+                     "priority": "medium", "category": "other",
+                     "due_date": "2026-05-15", "recurrence": "monthly"}])
+        client.patch("/todos/1/toggle")
+        todos = load_todos()
+        # TODO: 새 todo의 due_date == "2026-06-15"
+        pass
+
+    def test_recurrence_monthly_month_end_handling(self):
+        """월말 처리: 1월 31일 + monthly → 2월 마지막 날(28 or 29)로 clamp"""
+        save_todos([{"id": 1, "title": "월말", "description": "d", "completed": False,
+                     "priority": "medium", "category": "other",
+                     "due_date": "2026-01-31", "recurrence": "monthly"}])
+        client.patch("/todos/1/toggle")
+        todos = load_todos()
+        # TODO: 새 todo의 due_date는 "2026-02-28" (2026은 윤년 아님)
+        pass
+
+    def test_no_spawn_when_recurrence_none(self):
+        """recurrence가 None인 일반 todo 완료시에는 새 todo가 생기지 않음"""
+        save_todos([{"id": 1, "title": "T", "description": "d", "completed": False,
+                     "priority": "medium", "category": "other",
+                     "due_date": "2026-05-15"}])
+        client.patch("/todos/1/toggle")
+        todos = load_todos()
+        # TODO: assert len(todos) == 1
+        pass
+
+    def test_no_spawn_when_no_due_date(self):
+        """recurrence는 있지만 due_date가 없으면 spawn 불가 → 새 todo 없음"""
+        save_todos([{"id": 1, "title": "T", "description": "d", "completed": False,
+                     "priority": "medium", "category": "other",
+                     "recurrence": "daily"}])
+        client.patch("/todos/1/toggle")
+        todos = load_todos()
+        # TODO: assert len(todos) == 1
+        pass
+
+
+# ──────────────────────────────────────────────
+# GET /todos/completed-on/{date} 엔드포인트 (v7.1.0 신규)
+# ──────────────────────────────────────────────
+class TestCompletedOnEndpoint:
+    def test_completed_on_returns_only_matching_date(self):
+        """해당 날짜에 완료된 todo만 반환"""
+        save_todos([
+            {"id": 1, "title": "A", "description": "d", "completed": True,
+             "completed_at": "2026-05-15", "priority": "medium", "category": "other"},
+            {"id": 2, "title": "B", "description": "d", "completed": True,
+             "completed_at": "2026-05-14", "priority": "medium", "category": "other"},
+            {"id": 3, "title": "C", "description": "d", "completed": True,
+             "completed_at": "2026-05-15", "priority": "medium", "category": "other"},
+        ])
+        response = client.get("/todos/completed-on/2026-05-15")
+        # TODO: assert response.status_code == 200
+        # TODO: 결과 길이 2 (id 1, 3만)
+        # TODO: {t["id"] for t in result} == {1, 3}
+        pass
+
+    def test_completed_on_empty_when_no_match(self):
+        """해당 날짜에 완료된 todo가 없으면 빈 리스트"""
+        save_todos([{"id": 1, "title": "T", "description": "d", "completed": False,
+                     "priority": "medium", "category": "other"}])
+        response = client.get("/todos/completed-on/2026-05-15")
+        # TODO: assert response.status_code == 200
+        # TODO: assert response.json() == []
+        pass
+
+
+# ──────────────────────────────────────────────
+# Diary ↔ Todo 연결 테스트 (v7.1.0 신규)
+# ──────────────────────────────────────────────
+class TestDiaryTodoLink:
+    def test_linked_todo_ids_default_empty(self):
+        """DiaryEntry 생성 시 linked_todo_ids 기본값은 빈 리스트"""
+        entry = DiaryEntry(id=1, date="2026-05-15", title="X", content="x")
+        # TODO: assert entry.linked_todo_ids == []
+        pass
+
+    def test_diary_linked_todos_returns_linked(self):
+        """GET /diary/{id}/todos → linked_todo_ids에 포함된 todo만 반환"""
+        save_todos([
+            {"id": 10, "title": "A", "description": "d", "completed": False,
+             "priority": "medium", "category": "other"},
+            {"id": 20, "title": "B", "description": "d", "completed": False,
+             "priority": "medium", "category": "other"},
+            {"id": 30, "title": "C", "description": "d", "completed": False,
+             "priority": "medium", "category": "other"},
+        ])
+        save_diary([{"id": 1, "date": "2026-05-15", "title": "T", "content": "x",
+                     "mood": "happy", "linked_todo_ids": [10, 30]}])
+        response = client.get("/diary/1/todos")
+        # TODO: assert response.status_code == 200
+        # TODO: 결과 길이 2, ids {10, 30}
+        pass
+
+    def test_diary_linked_todos_empty_list_when_no_links(self):
+        """linked_todo_ids가 빈 배열이면 빈 리스트 반환"""
+        save_diary([{"id": 1, "date": "2026-05-15", "title": "T", "content": "x",
+                     "mood": "happy", "linked_todo_ids": []}])
+        response = client.get("/diary/1/todos")
+        # TODO: assert response.status_code == 200
+        # TODO: assert response.json() == []
+        pass
+
+    def test_diary_linked_todos_404_on_missing_entry(self):
+        """존재하지 않는 diary id → 404"""
+        response = client.get("/diary/999/todos")
+        # TODO: assert response.status_code == 404
+        pass
+
+
+# ──────────────────────────────────────────────
+# v7.1.0 버전 어설션
+# ──────────────────────────────────────────────
+class TestVersion710:
+    def test_version_is_710(self):
+        """/health 응답의 version 필드가 7.1.0인지 검증"""
+        response = client.get("/health")
+        data = response.json()
+        # TODO: assert data["version"] == "7.1.0"
+        pass
