@@ -110,7 +110,9 @@ services:
     image: grafana/loki:latest
     container_name: loki
     ports:
-      - "3100:3100"  
+      - "3100:3100"
+    networks:
+      - loadtest-net
 
 volumes:
   sonarqube_conf:
