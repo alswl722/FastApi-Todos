@@ -2,6 +2,33 @@
 
 ---
 
+## [v7.1.0] - 2026-05-05
+
+### 추가
+- **반복 할 일 (Recurrence) 기능**
+  - `TodoItem`에 `recurrence: Optional[str]` 필드 추가 (`daily` / `weekly` / `monthly` / `None`)
+  - `TodoItem`에 `completed_at: Optional[str]` 필드 추가 — 완료 시 자동 기록 (YYYY-MM-DD)
+  - 헬퍼 `_next_due_date()` — 일/주/월 단위 다음 due_date 계산. 월말 처리 시 `calendar.monthrange`로 clamp
+  - 헬퍼 `_spawn_next_recurrence()` — 반복 todo 완료 시 다음 회차 자동 생성
+  - `PATCH /todos/{id}/toggle` 및 `PUT /todos/{id}` 완료 전환 시 `completed_at` 자동 기록 + recurrence 발동
+- **Todo ↔ Diary 연결 기능**
+  - `DiaryEntry`에 `linked_todo_ids: list[int]` 필드 추가 (기본 빈 리스트)
+  - `GET /todos/completed-on/{date}` — 일기 작성 시 첨부 후보 조회용
+  - `GET /diary/{entry_id}/todos` — 일기에 연결된 todo 목록 조회
+- **로그 모니터링 (Loki 연동)**
+  - `LokiQueueHandler` 기반 커스텀 액세스 로거
+  - HTTP 요청 미들웨어가 모든 요청을 Loki로 전송 (client_host, method, path, status, duration)
+  - `LOKI_ENDPOINT` 환경변수로 엔드포인트 분리
+  - `requirements.txt`에 `python-logging-loki` 추가
+- **9주차 개인과제 결과물** (`306d377`)
+
+### 품질 개선
+- 신규 기능에 대한 단위 테스트 stub 18종 + E2E stub 8종 추가 (assertion은 사용자 채움)
+  - `TestCompletedAt`, `TestRecurrence`, `TestCompletedOnEndpoint`, `TestDiaryTodoLink`, `TestVersion710`
+  - `tests/e2e/test_recurrence.py`, `tests/e2e/test_diary_link.py`
+
+---
+
 ## [v7.0.0] - 2026-05-15
 
 ### 추가
