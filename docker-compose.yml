@@ -1,8 +1,12 @@
 services:
   fastapi-app:
-    build:
-      context: ./fastapi-app      # Dockerfile이 위치한 디렉토리 경로
-      dockerfile: Dockerfile      # Dockerfile 이름 (생략 가능, 기본값은 'Dockerfile')
+    # VDI에서 빌드 시 runc init 에러 발생 → Jenkins/노트북에서 빌드 후
+    # Docker Hub에 push된 이미지를 pull해서 사용
+    # 로컬에서 빌드하려면 아래 build: 블록을 다시 활성화하고 image: 주석
+    image: min7ji22/fastapi-app:latest
+    # build:
+    #   context: ./fastapi-app
+    #   dockerfile: Dockerfile
     container_name: FastApi-app
     ports:
       - "1535:8000"
