@@ -6,17 +6,22 @@ __pycache__/
 # pytest
 .pytest_cache/
 .coverage
-reports/e2e-report.html
-reports/e2e-report.md
-reports/screenshots/*.png
+fastapi-app/reports/e2e-report.html
+fastapi-app/reports/e2e-report.md
+fastapi-app/reports/screenshots/*.png
 
 # 로그
 *.log
 
 # Claude Code
 .claude/settings.local.json
+.claude/worktrees/
 
 # 환경
 .env
 .venv/
 venv/
+
+# macOS
+.DS_Store
+Icon?
